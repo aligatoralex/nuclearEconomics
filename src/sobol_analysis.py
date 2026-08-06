@@ -12,6 +12,8 @@ from src.fuel_cost import (
 from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 from src.tornado_analysis import (
+    AP1000_CAPEX_PARAM,
+    CANDU_CAPEX_PARAM,
     CANDU_PWR_RATIO_PARAM,
     CAPACITY_FACTOR_PARAM,
     D2O_CAPEX_PARAM,
@@ -27,13 +29,15 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
     deliberately excluded fuel cost to keep scope tight), Sobol adds
     ap1000_fuel_usd_per_mwh (and, for CANDU, CANDU_vs_PWR_fuel_cost_ratio)
     as real dimensions - variance-based analysis is exactly the tool for
-    catching interactions between them and the other parameters.
+    catching interactions between them and the other parameters. Krok 9b
+    adds the CAPEX-per-kW parameter too, now that both technologies have
+    real, comparable Tier 2 CAPEX figures.
     """
     wacc_param = (
         "WACC_government_pct" if "government" in scenario_key else "WACC_commercial_pct"
     )
     if scenario_key.startswith("ap1000"):
-        return [wacc_param, DECOMM_PARAM, CAPACITY_FACTOR_PARAM, FUEL_PARAM]
+        return [wacc_param, DECOMM_PARAM, CAPACITY_FACTOR_PARAM, FUEL_PARAM, AP1000_CAPEX_PARAM]
     return [
         wacc_param,
         DECOMM_PARAM,
@@ -41,18 +45,22 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         D2O_CAPEX_PARAM,
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
+        CANDU_CAPEX_PARAM,
     ]
 
 
-def _lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> float:
+def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> float:
     """Computes LCOE from a full row of simultaneously-sampled parameter
     values. Mirrors tornado_analysis._lcoe_at_bound's derived-quantity
-    logic (capex + D2O add-on, decomm % of capex, fuel from
-    calculate_fuel_cost_usd_per_year), but for many varying parameters
-    at once instead of one-at-a-time.
+    logic (capex_per_kw * capacity_mw * 1000 + D2O add-on, decomm % of capex,
+    fuel from calculate_fuel_cost_usd_per_year), but for many varying
+    parameters at once instead of one-at-a-time. Public (no leading
+    underscore): reused directly by src/apples_to_apples.py.
     """
+    capex_per_kw = values[base_scenario.capex_per_kw_parameter_name]
+    base_capex_usd = capex_per_kw * base_scenario.capacity_mw * 1000  # USD/kW -> USD/MW
     d2o_add_on = values.get(D2O_CAPEX_PARAM, 0.0)
-    capex_usd = base_scenario.capex_usd + d2o_add_on
+    capex_usd = base_capex_usd + d2o_add_on
 
     decomm_usd = capex_usd * values[DECOMM_PARAM] / 100
     capacity_factor = values[CAPACITY_FACTOR_PARAM] / 100
@@ -110,7 +118,7 @@ def run_sobol_analysis(
     y = np.empty(param_values.shape[0])
     for i, row in enumerate(param_values):
         values = dict(zip(sobol_parameter_names, row, strict=True))
-        y[i] = _lcoe_from_values(base_scenario, values)
+        y[i] = lcoe_from_values(base_scenario, values)
 
     sensitivity_indices = sobol_analyze.analyze(problem, y, seed=seed)
 

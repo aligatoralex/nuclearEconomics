@@ -16,6 +16,8 @@ CAPACITY_FACTOR_PARAM = "capacity_factor_large_LWR_pct"
 D2O_CAPEX_PARAM = "D2O_total_upfront_capex_usd_per_1000MWe"
 FUEL_PARAM = "ap1000_fuel_usd_per_mwh"
 CANDU_PWR_RATIO_PARAM = "CANDU_vs_PWR_fuel_cost_ratio"
+AP1000_CAPEX_PARAM = "AP1000_CAPEX_usd_per_kW"
+CANDU_CAPEX_PARAM = "CANDU_EC6_CAPEX_usd_per_kW"
 
 
 @dataclass
@@ -23,14 +25,17 @@ class BaseScenario:
     """Point-value inputs calculate_lcoe needs, plus which registry
     parameters this scenario's OAT tornado should vary.
 
+    CAPEX is derived from capex_per_kw_parameter_name * capacity_mw (Krok
+    9b) rather than being a fixed total - the registry didn't cover CAPEX
+    at all before Krok 9a/9b, so it was a hardcoded flat placeholder.
     fuel_usd_per_year is derived from the registry (see
-    build_base_scenarios). capex_usd/opex_usd_per_year/lifetime_years
-    aren't covered by the registry and stay as fixed placeholders (see
-    build_base_scenarios) - not tier-sourced data.
+    build_base_scenarios). opex_usd_per_year/lifetime_years aren't
+    covered by the registry and stay as fixed placeholders - not
+    tier-sourced data.
     """
 
     name: str
-    capex_usd: float
+    capex_per_kw_parameter_name: str
     fuel_usd_per_year: float
     opex_usd_per_year: float
     lifetime_years: int
@@ -43,11 +48,12 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     """Builds the four base scenarios (ap1000/candu_ec6 x government/
     commercial WACC). fuel_usd_per_year is derived from the registry
     (ap1000_fuel_usd_per_mwh, CANDU_vs_PWR_fuel_cost_ratio) via
-    src/fuel_cost.py, replacing the Krok 6 hardcoded placeholders
-    (60M/50M). This can't be a module-level constant like DECOMM_PARAM
-    etc. since it depends on registry contents, not just its keys.
-    CAPEX/OPEX/lifetime/capacity_mw still aren't covered by the registry
-    and stay as constants here (same figures as Krok 6/7b).
+    src/fuel_cost.py. CAPEX is derived from AP1000_CAPEX_usd_per_kW /
+    CANDU_EC6_CAPEX_usd_per_kW (Krok 9a/9b) instead of the Krok 6 flat
+    placeholders (15.525B/5B) - both are now real, comparable Tier 2
+    figures (EJ1 Westinghouse offer vs EJ2 AtkinsRealis Feb 2026 offer).
+    OPEX/lifetime/capacity_mw still aren't covered by the registry and
+    stay as constants here (same figures as Krok 6/7b).
     """
     registry_by_name = {e.parameter: e for e in registry}
     capacity_factor = registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
@@ -75,11 +81,13 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             "WACC_government_pct",
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
+            AP1000_CAPEX_PARAM,
         ],
         "WACC_commercial_pct": [
             "WACC_commercial_pct",
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
+            AP1000_CAPEX_PARAM,
         ],
     }
     candu_applicable = {
@@ -88,12 +96,14 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
+            CANDU_CAPEX_PARAM,
         ],
         "WACC_commercial_pct": [
             "WACC_commercial_pct",
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
+            CANDU_CAPEX_PARAM,
         ],
     }
 
@@ -104,7 +114,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     ]:
         scenarios[f"ap1000_{wacc_kind}"] = BaseScenario(
             name="ap1000",
-            capex_usd=15_525_000_000.0,
+            capex_per_kw_parameter_name=AP1000_CAPEX_PARAM,
             fuel_usd_per_year=ap1000_fuel_usd_per_year,
             capacity_mw=1150.0,
             wacc_parameter_name=wacc_param,
@@ -113,7 +123,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
         )
         scenarios[f"candu_ec6_{wacc_kind}"] = BaseScenario(
             name="candu_ec6",
-            capex_usd=5_000_000_000.0,
+            capex_per_kw_parameter_name=CANDU_CAPEX_PARAM,
             fuel_usd_per_year=candu_fuel_usd_per_year,
             capacity_mw=1000.0,
             wacc_parameter_name=wacc_param,
@@ -133,10 +143,11 @@ def _lcoe_at_bound(
     """Computes LCOE with exactly one registry parameter set to its min or
     max bound, and every other applicable registry parameter held at mid.
 
-    decomm_usd and capex_usd are DERIVED from decommissioning % and D2O
-    add-on respectively, rather than being free inputs themselves - so
-    varying D2O_total_upfront_capex_usd_per_1000MWe changes the CAPEX that
-    decomm % is applied to (decomm % itself stays at mid unless it's the
+    capex_usd, decomm_usd are DERIVED quantities (capex_per_kw *
+    capacity_mw + D2O add-on; decomm % of that capex), rather than free
+    inputs themselves - so varying the CAPEX-per-kW parameter or
+    D2O_total_upfront_capex_usd_per_1000MWe changes the CAPEX that decomm
+    % is applied to (decomm % itself stays at mid unless it's the
     parameter being varied), which is the intended OAT behavior for a
     derived quantity, not an extra hidden factor.
     """
@@ -146,13 +157,17 @@ def _lcoe_at_bound(
             return getattr(registry_by_name[param_name].value_or_range, bound)
         return mid_fallback
 
+    capex_per_kw_mid = registry_by_name[base_scenario.capex_per_kw_parameter_name].value_or_range.mid
+    capex_per_kw = value(base_scenario.capex_per_kw_parameter_name, capex_per_kw_mid)
+    base_capex_usd = capex_per_kw * base_scenario.capacity_mw * 1000  # USD/kW -> USD/MW
+
     d2o_mid = registry_by_name[D2O_CAPEX_PARAM].value_or_range.mid
     d2o_add_on = (
         value(D2O_CAPEX_PARAM, d2o_mid)
         if D2O_CAPEX_PARAM in base_scenario.applicable_parameter_names
         else 0.0
     )
-    capex_usd = base_scenario.capex_usd + d2o_add_on
+    capex_usd = base_capex_usd + d2o_add_on
 
     decomm_pct_mid = registry_by_name[DECOMM_PARAM].value_or_range.mid
     decomm_pct = value(DECOMM_PARAM, decomm_pct_mid)
