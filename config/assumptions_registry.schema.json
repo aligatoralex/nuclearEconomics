@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "ValueRange": {
+      "properties": {
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "mid": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mid"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "ValueRange",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "parameter": {
+      "title": "Parameter",
+      "type": "string"
+    },
+    "value_or_range": {
+      "$ref": "#/$defs/ValueRange"
+    },
+    "distribution_type": {
+      "enum": [
+        "uniform",
+        "triangular",
+        "normal",
+        "lognormal",
+        "beta"
+      ],
+      "title": "Distribution Type",
+      "type": "string"
+    },
+    "tier": {
+      "enum": [
+        1,
+        2,
+        3
+      ],
+      "title": "Tier",
+      "type": "integer"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "date_retrieved": {
+      "format": "date",
+      "title": "Date Retrieved",
+      "type": "string"
+    },
+    "rationale": {
+      "title": "Rationale",
+      "type": "string"
+    },
+    "requires_confirmation": {
+      "title": "Requires Confirmation",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "parameter",
+    "value_or_range",
+    "distribution_type",
+    "tier",
+    "source",
+    "date_retrieved",
+    "rationale",
+    "requires_confirmation"
+  ],
+  "title": "AssumptionEntry",
+  "type": "object"
+}
