@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, model_validator
@@ -28,3 +30,10 @@ class AssumptionEntry(BaseModel):
                 "requires_confirmation=True"
             )
         return self
+
+
+def load_assumptions_registry(path: Path) -> list[AssumptionEntry]:
+    """Loads and validates every entry of the assumptions registry JSON."""
+    with open(path) as f:
+        raw_entries = json.load(f)
+    return [AssumptionEntry(**entry) for entry in raw_entries]
