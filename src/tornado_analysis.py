@@ -4,23 +4,29 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.fuel_cost import (
+    calculate_fuel_cost_usd_per_year,
+    candu_natural_fuel_usd_per_mwh,
+)
 from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 
 DECOMM_PARAM = "decommissioning_pct_capex_large_LWR"
 CAPACITY_FACTOR_PARAM = "capacity_factor_large_LWR_pct"
 D2O_CAPEX_PARAM = "D2O_total_upfront_capex_usd_per_1000MWe"
+FUEL_PARAM = "ap1000_fuel_usd_per_mwh"
+CANDU_PWR_RATIO_PARAM = "CANDU_vs_PWR_fuel_cost_ratio"
 
 
 @dataclass
 class BaseScenario:
-    """Point-value inputs calculate_lcoe needs that the assumptions
-    registry doesn't cover (CAPEX/fuel/OPEX/lifetime/capacity_mw), plus
-    which registry parameters this scenario's OAT tornado should vary.
+    """Point-value inputs calculate_lcoe needs, plus which registry
+    parameters this scenario's OAT tornado should vary.
 
-    capex_usd and fuel_usd_per_year are reused verbatim from the Krok 6
-    scenario placeholders (NOT sourced from the registry, which has no
-    absolute CAPEX/fuel figures) - see plan/commit notes.
+    fuel_usd_per_year is derived from the registry (see
+    build_base_scenarios). capex_usd/opex_usd_per_year/lifetime_years
+    aren't covered by the registry and stay as fixed placeholders (see
+    build_base_scenarios) - not tier-sourced data.
     """
 
     name: str
@@ -33,53 +39,88 @@ class BaseScenario:
     applicable_parameter_names: list[str]
 
 
-AP1000_GOVERNMENT = BaseScenario(
-    name="ap1000",
-    capex_usd=15_525_000_000.0,
-    fuel_usd_per_year=60_000_000.0,
-    opex_usd_per_year=100_000_000.0,
-    lifetime_years=60,
-    capacity_mw=1150.0,
-    wacc_parameter_name="WACC_government_pct",
-    applicable_parameter_names=["WACC_government_pct", DECOMM_PARAM, CAPACITY_FACTOR_PARAM],
-)
+def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScenario]:
+    """Builds the four base scenarios (ap1000/candu_ec6 x government/
+    commercial WACC). fuel_usd_per_year is derived from the registry
+    (ap1000_fuel_usd_per_mwh, CANDU_vs_PWR_fuel_cost_ratio) via
+    src/fuel_cost.py, replacing the Krok 6 hardcoded placeholders
+    (60M/50M). This can't be a module-level constant like DECOMM_PARAM
+    etc. since it depends on registry contents, not just its keys.
+    CAPEX/OPEX/lifetime/capacity_mw still aren't covered by the registry
+    and stay as constants here (same figures as Krok 6/7b).
+    """
+    registry_by_name = {e.parameter: e for e in registry}
+    capacity_factor = registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
 
-AP1000_COMMERCIAL = BaseScenario(
-    name="ap1000",
-    capex_usd=15_525_000_000.0,
-    fuel_usd_per_year=60_000_000.0,
-    opex_usd_per_year=100_000_000.0,
-    lifetime_years=60,
-    capacity_mw=1150.0,
-    wacc_parameter_name="WACC_commercial_pct",
-    applicable_parameter_names=["WACC_commercial_pct", DECOMM_PARAM, CAPACITY_FACTOR_PARAM],
-)
+    ap1000_fuel_usd_per_mwh = registry_by_name[FUEL_PARAM].value_or_range.mid
+    ap1000_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
+        capacity_mw=1150.0,
+        capacity_factor=capacity_factor,
+        base_fuel_usd_per_mwh=ap1000_fuel_usd_per_mwh,
+    )
 
-CANDU_GOVERNMENT = BaseScenario(
-    name="candu_ec6",
-    capex_usd=5_000_000_000.0,
-    fuel_usd_per_year=50_000_000.0,
-    opex_usd_per_year=100_000_000.0,
-    lifetime_years=60,
-    capacity_mw=1000.0,
-    wacc_parameter_name="WACC_government_pct",
-    applicable_parameter_names=[
-        "WACC_government_pct", DECOMM_PARAM, CAPACITY_FACTOR_PARAM, D2O_CAPEX_PARAM
-    ],
-)
+    candu_ratio = registry_by_name[CANDU_PWR_RATIO_PARAM].value_or_range.mid
+    candu_fuel_usd_per_mwh = candu_natural_fuel_usd_per_mwh(
+        ap1000_fuel_usd_per_mwh, candu_ratio
+    )
+    candu_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
+        capacity_mw=1000.0,
+        capacity_factor=capacity_factor,
+        base_fuel_usd_per_mwh=candu_fuel_usd_per_mwh,
+    )
 
-CANDU_COMMERCIAL = BaseScenario(
-    name="candu_ec6",
-    capex_usd=5_000_000_000.0,
-    fuel_usd_per_year=50_000_000.0,
-    opex_usd_per_year=100_000_000.0,
-    lifetime_years=60,
-    capacity_mw=1000.0,
-    wacc_parameter_name="WACC_commercial_pct",
-    applicable_parameter_names=[
-        "WACC_commercial_pct", DECOMM_PARAM, CAPACITY_FACTOR_PARAM, D2O_CAPEX_PARAM
-    ],
-)
+    common = {"opex_usd_per_year": 100_000_000.0, "lifetime_years": 60}
+    ap1000_applicable = {
+        "WACC_government_pct": [
+            "WACC_government_pct",
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+        ],
+        "WACC_commercial_pct": [
+            "WACC_commercial_pct",
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+        ],
+    }
+    candu_applicable = {
+        "WACC_government_pct": [
+            "WACC_government_pct",
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+            D2O_CAPEX_PARAM,
+        ],
+        "WACC_commercial_pct": [
+            "WACC_commercial_pct",
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+            D2O_CAPEX_PARAM,
+        ],
+    }
+
+    scenarios = {}
+    for wacc_kind, wacc_param in [
+        ("government", "WACC_government_pct"),
+        ("commercial", "WACC_commercial_pct"),
+    ]:
+        scenarios[f"ap1000_{wacc_kind}"] = BaseScenario(
+            name="ap1000",
+            capex_usd=15_525_000_000.0,
+            fuel_usd_per_year=ap1000_fuel_usd_per_year,
+            capacity_mw=1150.0,
+            wacc_parameter_name=wacc_param,
+            applicable_parameter_names=ap1000_applicable[wacc_param],
+            **common,
+        )
+        scenarios[f"candu_ec6_{wacc_kind}"] = BaseScenario(
+            name="candu_ec6",
+            capex_usd=5_000_000_000.0,
+            fuel_usd_per_year=candu_fuel_usd_per_year,
+            capacity_mw=1000.0,
+            wacc_parameter_name=wacc_param,
+            applicable_parameter_names=candu_applicable[wacc_param],
+            **common,
+        )
+    return scenarios
 
 
 def _lcoe_at_bound(
@@ -106,7 +147,11 @@ def _lcoe_at_bound(
         return mid_fallback
 
     d2o_mid = registry_by_name[D2O_CAPEX_PARAM].value_or_range.mid
-    d2o_add_on = value(D2O_CAPEX_PARAM, d2o_mid) if D2O_CAPEX_PARAM in base_scenario.applicable_parameter_names else 0.0
+    d2o_add_on = (
+        value(D2O_CAPEX_PARAM, d2o_mid)
+        if D2O_CAPEX_PARAM in base_scenario.applicable_parameter_names
+        else 0.0
+    )
     capex_usd = base_scenario.capex_usd + d2o_add_on
 
     decomm_pct_mid = registry_by_name[DECOMM_PARAM].value_or_range.mid
@@ -145,8 +190,12 @@ def run_oat_tornado(
 
     rows = []
     for name in base_scenario.applicable_parameter_names:
-        lcoe_at_min = _lcoe_at_bound(base_scenario, registry_by_name, name, "min", target_fn)
-        lcoe_at_max = _lcoe_at_bound(base_scenario, registry_by_name, name, "max", target_fn)
+        lcoe_at_min = _lcoe_at_bound(
+            base_scenario, registry_by_name, name, "min", target_fn
+        )
+        lcoe_at_max = _lcoe_at_bound(
+            base_scenario, registry_by_name, name, "max", target_fn
+        )
         rows.append(
             {
                 "parameter": name,
@@ -157,23 +206,24 @@ def run_oat_tornado(
             }
         )
 
-    return pd.DataFrame(rows).sort_values("range", ascending=False).reset_index(drop=True)
+    return (
+        pd.DataFrame(rows).sort_values("range", ascending=False).reset_index(drop=True)
+    )
 
 
 if __name__ == "__main__":
     from src.schemas import load_assumptions_registry
 
     repo_root = Path(__file__).resolve().parent.parent
-    registry = load_assumptions_registry(repo_root / "config" / "assumptions_registry.json")
+    registry = load_assumptions_registry(
+        repo_root / "config" / "assumptions_registry.json"
+    )
+    scenarios = build_base_scenarios(registry)
 
-    technology_runs = [
-        ("ap1000", AP1000_GOVERNMENT, AP1000_COMMERCIAL),
-        ("candu_ec6", CANDU_GOVERNMENT, CANDU_COMMERCIAL),
-    ]
-    for tech_name, government_scenario, commercial_scenario in technology_runs:
-        government_df = run_oat_tornado(registry, government_scenario)
+    for tech_name in ("ap1000", "candu_ec6"):
+        government_df = run_oat_tornado(registry, scenarios[f"{tech_name}_government"])
         government_df["wacc_scenario"] = "government"
-        commercial_df = run_oat_tornado(registry, commercial_scenario)
+        commercial_df = run_oat_tornado(registry, scenarios[f"{tech_name}_commercial"])
         commercial_df["wacc_scenario"] = "commercial"
 
         combined = pd.concat([government_df, commercial_df], ignore_index=True)
