@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>LCOE AP1000 vs CANDU EC6 &mdash; Krok 9/10</title>
+<style>
+  :root {
+    --color-ap1000: #4C6FE7;
+    --color-candu: #E2574C;
+    --color-warning: #F2B134;
+    --color-neutral: #6B7280;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1a1a1a; background: #fafafa;
+  }
+  .dashboard {
+    display: grid;
+    grid-template-rows: 5vh 15vh 51vh 27vh;
+    height: 100vh; width: 100vw;
+    padding: 6px 16px; gap: 6px;
+  }
+  h1 { margin: 0; font-size: 1.1rem; color: var(--color-neutral); font-weight: 600; }
+  .kpi-row { display: flex; gap: 10px; }
+  .kpi-card {
+    flex: 1; background: white; border-top: 4px solid; border-radius: 6px;
+    padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .kpi-label { font-size: 0.72rem; color: var(--color-neutral); text-transform: uppercase; letter-spacing: 0.03em; }
+  .kpi-value { font-size: 1.9rem; font-weight: 700; line-height: 1.15; }
+  .kpi-unit { font-size: 1rem; font-weight: 400; color: var(--color-neutral); }
+  .kpi-sub { font-size: 0.75rem; color: var(--color-neutral); margin-top: 2px; }
+  .chart-row { display: flex; gap: 10px; min-height: 0; }
+  .chart-panel {
+    flex: 1; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 4px; display: flex; flex-direction: column; min-height: 0;
+  }
+  .chart-panel svg { width: 100%; height: auto; max-height: 100%; }
+  .chart-svg-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .chart-source { font-size: 0.65rem; color: var(--color-neutral); padding: 2px 8px; }
+  .table-panel {
+    background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 8px 14px; display: flex; flex-direction: column; min-height: 0;
+  }
+  .table-panel h2 { margin: 0 0 4px 0; font-size: 0.85rem; color: var(--color-neutral); }
+  .table-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+  thead th {
+    position: sticky; top: 0; background: #fafafa; text-align: left;
+    padding: 3px 8px; border-bottom: 1px solid #ddd; color: var(--color-neutral);
+  }
+  tbody td { padding: 3px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .source-cell {
+    max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: help;
+  }
+  .tier-badge {
+    color: white; border-radius: 3px; padding: 1px 6px; font-size: 0.68rem; font-weight: 600;
+  }
+  .offer-badge {
+    display: inline-block; margin-left: 6px; background: var(--color-warning);
+    color: #3a2c00; border-radius: 3px; padding: 1px 6px; font-size: 0.62rem; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <h1>LCOE AP1000 vs CANDU EC6 &mdash; wyniki Krok 9 (dane zamrozone 2026-08-06)</h1>
+
+  <div class="kpi-row">
+    
+    <div class="kpi-card" style="border-top-color:#4C6FE7">
+      <div class="kpi-label">AP1000 LCOE (WACC rzadowy)</div>
+      <div class="kpi-value">86.9 <span class="kpi-unit">USD/MWh</span></div>
+      <div class="kpi-sub">P10-P90: 79 - 93</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#E2574C">
+      <div class="kpi-label">CANDU EC6 LCOE (WACC rzadowy)</div>
+      <div class="kpi-value">85.9 <span class="kpi-unit">USD/MWh</span></div>
+      <div class="kpi-sub">P10-P90: 81 - 91</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#6B7280">
+      <div class="kpi-label">Roznica CANDU vs AP1000</div>
+      <div class="kpi-value">-1.1<span class="kpi-unit">%</span></div>
+      <div class="kpi-sub">Marginalna przy porownywalnym CAPEX - Krok 9b</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#F2B134">
+      <div class="kpi-label">Dominujacy czynnik niepewnosci</div>
+      <div class="kpi-value" style="font-size:1.4rem">WACC_government_pct</div>
+      <div class="kpi-sub">Sobol ST = 0.74</div>
+    </div>
+    
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-panel">
+      <div class="chart-svg-wrap"><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="470" style="" viewBox="0 0 900 470"><rect x="0" y="0" width="900" height="470" style="fill: rgb(255, 255, 255); fill-opacity: 1;"/><defs id="defs-d58e65"><g class="clips"><clipPath id="clipd58e65xyplot" class="plotclip"><rect width="606" height="382"/></clipPath><clipPath class="axesclip" id="clipd58e65x"><rect x="284" y="0" width="606" height="470"/></clipPath><clipPath class="axesclip" id="clipd58e65y"><rect x="0" y="40" width="900" height="382"/></clipPath><clipPath class="axesclip" id="clipd58e65xy"><rect x="284" y="40" width="606" height="382"/></clipPath></g><g class="gradients"/><g class="patterns"/></defs><g class="bglayer"/><g class="layer-below"><g class="imagelayer"/><g class="shapelayer"/></g><g class="cartesianlayer"><g class="subplot xy"><g class="layer-subplot"><g class="shapelayer"/><g class="imagelayer"/></g><g class="minor-gridlayer"><g class="x"/><g class="y"/></g><g class="gridlayer"><g class="x"><path class="xgrid crisp" transform="translate(361.92,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(439.85,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(517.77,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(595.69,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(673.61,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(751.54,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="xgrid crisp" transform="translate(829.46,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/></g><g class="y"/></g><g class="zerolinelayer"><path class="xzl zl crisp" transform="translate(284,0)" d="M0,40v382" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 2px;"/></g><g class="layer-between"><g class="shapelayer"/><g class="imagelayer"/></g><path class="xlines-below"/><path class="ylines-below"/><g class="overlines-below"/><g class="xaxislayer-below"/><g class="yaxislayer-below"/><g class="overaxes-below"/><g class="overplot"><g class="xy" transform="translate(284,40)" clip-path="url(#clipd58e65xyplot)"><g class="barlayer mlayer"><g class="trace bars" style="opacity: 1;"><g class="points"><g class="point"><path d="M0,378.82V353.35H0.11V378.82Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(76, 111, 231); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,346.98V321.52H17.33V346.98Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(76, 111, 231); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,315.15V289.68H25.74V315.15Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(76, 111, 231); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,283.32V257.85H284.88V283.32Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(76, 111, 231); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,251.48V226.02H458.2V251.48Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(76, 111, 231); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g></g></g><g class="trace bars" style="opacity: 1;"><g class="points"><g class="point"><path d="M0,219.65V194.18H0.14V219.65Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,187.82V162.35H0.46V187.82Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,155.98V130.52H3.73V155.98Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,124.15V98.68H6.64V124.15Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,92.32V66.85H33.32V92.32Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,60.48V35.02H162.32V60.48Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g><g class="point"><path d="M0,28.65V3.18H575.7V28.65Z" style="vector-effect: none; opacity: 1; stroke-width: 0.5px; fill: rgb(226, 87, 76); fill-opacity: 1; stroke: rgb(255, 255, 255); stroke-opacity: 1;"/></g></g></g></g></g></g><g class="zerolinelayer-above"/><path class="xlines-above crisp" d="M0,0" style="fill: none;"/><path class="ylines-above crisp" d="M0,0" style="fill: none;"/><g class="overlines-above"/><g class="xaxislayer-above"><g class="xtick"><text text-anchor="middle" x="0" y="434" transform="translate(284,0)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">0</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(361.92,0)">0.1</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(439.85,0)">0.2</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(517.77,0)">0.3</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(595.69,0)">0.4</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(673.61,0)">0.5</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(751.54,0)">0.6</text></g><g class="xtick"><text text-anchor="middle" x="0" y="434" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(829.46,0)">0.7</text></g></g><g class="yaxislayer-above"><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,406.08)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000: decommissioning_pct_capex_large_LWR</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,374.25)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000: ap1000_fuel_usd_per_mwh</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,342.42)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000: capacity_factor_large_LWR_pct</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,310.58)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000: AP1000_CAPEX_usd_per_kW</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,278.75)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000: WACC_government_pct</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,246.92)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: decommissioning_pct_capex_large_LWR</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,215.08)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: CANDU_vs_PWR_fuel_cost_ratio</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,183.25)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: D2O_total_upfront_capex_usd_per_1000MWe</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,151.42000000000002)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: ap1000_fuel_usd_per_mwh</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,119.58)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: capacity_factor_large_LWR_pct</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,87.75)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: CANDU_EC6_CAPEX_usd_per_kW</text></g><g class="ytick"><text text-anchor="end" x="283" y="3.8499999999999996" transform="translate(0,55.92)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU: WACC_government_pct</text></g></g><g class="overaxes-above"/></g></g><g class="polarlayer"/><g class="smithlayer"/><g class="ternarylayer"/><g class="geolayer"/><g class="funnelarealayer"/><g class="pielayer"/><g class="iciclelayer"/><g class="treemaplayer"/><g class="sunburstlayer"/><g class="glimages"/><defs id="topdefs-d58e65"><g class="clips"/></defs><g class="layer-above"><g class="imagelayer"/><g class="shapelayer"/></g><g class="infolayer"><g class="g-gtitle"><text class="gtitle" x="45" y="20" text-anchor="start" dy="0em" style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">Sobol ST, WACC rzadowy (Krok 9c)</text></g><g class="g-xtitle"><text class="xtitle" x="587" y="459.6" text-anchor="middle" style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 13px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">Sobol ST</text></g><g class="g-ytitle"/></g></svg></div>
+      <div class="chart-source">Zrodlo: data/output/step9c_tornado_sobol_updated/sobol_*.csv (Krok 9c, 2026-08-06)</div>
+    </div>
+    <div class="chart-panel">
+      <div class="chart-svg-wrap"><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="470" style="" viewBox="0 0 900 470"><rect x="0" y="0" width="900" height="470" style="fill: rgb(255, 255, 255); fill-opacity: 1;"/><defs id="defs-8d4ec0"><g class="clips"><clipPath id="clip8d4ec0xyplot" class="plotclip"><rect width="837" height="340"/></clipPath><clipPath class="axesclip" id="clip8d4ec0x"><rect x="53" y="0" width="837" height="470"/></clipPath><clipPath class="axesclip" id="clip8d4ec0y"><rect x="0" y="40" width="900" height="340"/></clipPath><clipPath class="axesclip" id="clip8d4ec0xy"><rect x="53" y="40" width="837" height="340"/></clipPath></g><g class="gradients"/><g class="patterns"/></defs><g class="bglayer"/><g class="layer-below"><g class="imagelayer"/><g class="shapelayer"/></g><g class="cartesianlayer"><g class="subplot xy"><g class="layer-subplot"><g class="shapelayer"/><g class="imagelayer"/></g><g class="minor-gridlayer"><g class="x"/><g class="y"/></g><g class="gridlayer"><g class="x"/><g class="y"><path class="ygrid crisp" transform="translate(0,339.96)" d="M53,0h837" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="ygrid crisp" transform="translate(0,272.15)" d="M53,0h837" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="ygrid crisp" transform="translate(0,204.33)" d="M53,0h837" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="ygrid crisp" transform="translate(0,136.51)" d="M53,0h837" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/><path class="ygrid crisp" transform="translate(0,68.69)" d="M53,0h837" style="stroke: rgb(235, 240, 248); stroke-opacity: 1; stroke-width: 1px;"/></g></g><g class="zerolinelayer"/><g class="layer-between"><g class="shapelayer"/><g class="imagelayer"/></g><path class="xlines-below"/><path class="ylines-below"/><g class="overlines-below"/><g class="xaxislayer-below"/><g class="yaxislayer-below"/><g class="overaxes-below"/><g class="overplot"><g class="xy" transform="translate(53,40)" clip-path="url(#clip8d4ec0xyplot)"><g class="boxlayer mlayer"><g class="trace boxes" style="opacity: 1;"><path class="box" d="M84.75,276.7H187.28M84.75,290.5H187.28V265.34H84.75ZM136.01,290.5V323M136.01,265.34V234.6M110.38,323H161.65M110.38,234.6H161.65" style="vector-effect: none; stroke-width: 2px; stroke: rgb(76, 111, 231); stroke-opacity: 1; fill: rgb(76, 111, 231); fill-opacity: 0.5;"/><path class="box" d="M503.25,93.19H605.78M503.25,117.62H605.78V74.07H503.25ZM554.51,117.62V173.58M554.51,74.07V17M528.88,173.58H580.15M528.88,17H580.15" style="vector-effect: none; stroke-width: 2px; stroke: rgb(76, 111, 231); stroke-opacity: 1; fill: rgb(76, 111, 231); fill-opacity: 0.5;"/></g><g class="trace boxes" style="opacity: 1;"><path class="box" d="M231.22,279.97H333.75M231.22,288.57H333.75V270.34H231.22ZM282.49,288.57V312.62M282.49,270.34V240.17M256.85,312.62H308.12M256.85,240.17H308.12" style="vector-effect: none; stroke-width: 2px; stroke: rgb(226, 87, 76); stroke-opacity: 1; fill: rgb(226, 87, 76); fill-opacity: 0.5;"/><path class="box" d="M649.72,93.43H752.25M649.72,108.76H752.25V76.36H649.72ZM700.99,108.76V149.89M700.99,76.36V27.72M675.35,149.89H726.62M675.35,27.72H726.62" style="vector-effect: none; stroke-width: 2px; stroke: rgb(226, 87, 76); stroke-opacity: 1; fill: rgb(226, 87, 76); fill-opacity: 0.5;"/></g></g></g></g><g class="zerolinelayer-above"/><path class="xlines-above crisp" d="M0,0" style="fill: none;"/><path class="ylines-above crisp" d="M0,0" style="fill: none;"/><g class="overlines-above"/><g class="xaxislayer-above"><g class="xtick"><text text-anchor="middle" x="0" y="392" transform="translate(262.25,0)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">government</text></g><g class="xtick"><text text-anchor="middle" x="0" y="392" transform="translate(680.75,0)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">commercial</text></g></g><g class="yaxislayer-above"><g class="ytick"><text text-anchor="end" x="52" y="3.8499999999999996" transform="translate(0,339.96)" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">80</text></g><g class="ytick"><text text-anchor="end" x="52" y="3.8499999999999996" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(0,272.15)">100</text></g><g class="ytick"><text text-anchor="end" x="52" y="3.8499999999999996" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(0,204.33)">120</text></g><g class="ytick"><text text-anchor="end" x="52" y="3.8499999999999996" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(0,136.51)">140</text></g><g class="ytick"><text text-anchor="end" x="52" y="3.8499999999999996" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;" transform="translate(0,68.69)">160</text></g></g><g class="overaxes-above"/></g></g><g class="polarlayer"/><g class="smithlayer"/><g class="ternarylayer"/><g class="geolayer"/><g class="funnelarealayer"/><g class="pielayer"/><g class="iciclelayer"/><g class="treemaplayer"/><g class="sunburstlayer"/><g class="glimages"/><defs id="topdefs-8d4ec0"><g class="clips"/><clipPath id="legend8d4ec0"><rect width="193" height="29" x="0" y="0"/></clipPath></defs><g class="layer-above"><g class="imagelayer"/><g class="shapelayer"/></g><g class="infolayer"><g class="legend" pointer-events="all" transform="translate(53,430.99999999999994)"><rect class="bg" shape-rendering="crispEdges" style="stroke: rgb(68, 68, 68); stroke-opacity: 1; fill: rgb(255, 255, 255); fill-opacity: 1; stroke-width: 0px;" width="193" height="29" x="0" y="0"/><g class="scrollbox" transform="" clip-path="url(#legend8d4ec0)"><g class="groups"><g class="traces" transform="translate(0,14.5)" style="opacity: 1;"><text class="legendtext" text-anchor="start" x="40" y="4.29" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">AP1000</text><g class="layers" style="opacity: 1;"><g class="legendfill"/><g class="legendlines"/><g class="legendsymbols"><g class="legendpoints"><path class="legendbox" d="M6,6H-6V-6H6Z" transform="translate(20,0)" style="stroke-width: 2px; fill: rgb(76, 111, 231); fill-opacity: 0.5; stroke: rgb(76, 111, 231); stroke-opacity: 1;"/></g></g></g><rect class="legendtoggle" x="0" y="-9.5" width="81.65625" height="19" style="fill: rgb(0, 0, 0); fill-opacity: 0;"/></g><g class="traces" transform="translate(84.15625,14.5)" style="opacity: 1;"><text class="legendtext" text-anchor="start" x="40" y="4.29" style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 11px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">CANDU EC6</text><g class="layers" style="opacity: 1;"><g class="legendfill"/><g class="legendlines"/><g class="legendsymbols"><g class="legendpoints"><path class="legendbox" d="M6,6H-6V-6H6Z" transform="translate(20,0)" style="stroke-width: 2px; fill: rgb(226, 87, 76); fill-opacity: 0.5; stroke: rgb(226, 87, 76); stroke-opacity: 1;"/></g></g></g><rect class="legendtoggle" x="0" y="-9.5" width="106.078125" height="19" style="fill: rgb(0, 0, 0); fill-opacity: 0;"/></g></g></g><rect class="scrollbar" rx="20" ry="3" width="0" height="0" style="fill: rgb(128, 139, 164); fill-opacity: 1;" x="0" y="0"/></g><g class="g-gtitle"><text class="gtitle" x="45" y="20" text-anchor="start" dy="0em" style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">LCOE apples-to-apples, N=1000 (Krok 9b)</text></g><g class="g-xtitle"/><g class="g-ytitle"><text class="ytitle" transform="rotate(-90,14.590625000000003,210)" x="14.590625000000003" y="210" text-anchor="middle" style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 13px; fill: rgb(42, 63, 95); fill-opacity: 1; white-space: pre;">LCOE (USD/MWh)</text></g></g></svg></div>
+      <div class="chart-source">Zrodlo: data/output/step9_apples_to_apples_lcoe.csv (Krok 9b, 2026-08-06)</div>
+    </div>
+  </div>
+
+  <div class="table-panel">
+    <h2>Rejestr zalozen (config/assumptions_registry.json, 17 parametrow)</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Parametr</th><th>Min / Mid / Max</th><th>Tier</th><th>Potw.</th><th>Zrodlo</th></tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>D2O_price_usd_per_kg</td>
+              <td>450 / 650 / 1,000</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="QY Research Heavy Water Market 2024 (646 USD/kg ex-factory); UN/World Bank Comtrade export data 2024 (458-652 USD/kg implied)">QY Research Heavy Water Market 2024 (646 USD/kg ex-factory); UN/World Bank Comtrade export data 2024 (458-652 USD/kg implied)</td>
+            </tr>
+            
+            <tr>
+              <td>D2O_inventory_tonnes_per_1000MWe_EC6</td>
+              <td>550 / 618 / 700</td>
+              <td><span class="tier-badge" style="background:#C0392B">Tier 3</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="Ekstrapolacja liniowa z CANDU-6 bazowego 457t/740MWe (NuclearFAQ.ca, SNU OCW lecture notes)">Ekstrapolacja liniowa z CANDU-6 bazowego 457t/740MWe (NuclearFAQ.ca, SNU OCW lecture notes)</td>
+            </tr>
+            
+            <tr>
+              <td>D2O_annual_makeup_losses_tonnes_per_year</td>
+              <td>2 / 3 / 4.5</td>
+              <td><span class="tier-badge" style="background:#2E9E5B">Tier 1</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="NuclearFAQ.ca: ~3 t/rok dla CANDU-6">NuclearFAQ.ca: ~3 t/rok dla CANDU-6</td>
+            </tr>
+            
+            <tr>
+              <td>D2O_total_upfront_capex_usd_per_1000MWe</td>
+              <td>275M / 400M / 700M</td>
+              <td><span class="tier-badge" style="background:#C0392B">Tier 3</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="Iloczyn D2O_price x D2O_inventory (obie zmienne Tier 2/3)">Iloczyn D2O_price x D2O_inventory (obie zmienne Tier 2/3)</td>
+            </tr>
+            
+            <tr>
+              <td>WACC_government_pct</td>
+              <td>3 / 4 / 5.5</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="NEA EGC 2020 floor 3%; PEJ EJ1 100% gwarancje na dług, 30% equity Treasury">NEA EGC 2020 floor 3%; PEJ EJ1 100% gwarancje na dług, 30% equity Treasury</td>
+            </tr>
+            
+            <tr>
+              <td>WACC_commercial_pct</td>
+              <td>7 / 8 / 10</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="Lazard LCOE+ 2025 after-tax WACC 7.7%; UK CfD expert opinion 8%; NEA EGC ceiling 10%">Lazard LCOE+ 2025 after-tax WACC 7.7%; UK CfD expert opinion 8%; NEA EGC ceiling 10%</td>
+            </tr>
+            
+            <tr>
+              <td>BWRX300_CAPEX_usd_per_kW</td>
+              <td>6,000 / 12,000 / 19,000</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="Darlington FOAK 20333 CAD/kW overnight; NOAK 4. jednostka 33% cheaper; deklaracja producenta 2980 USD/kW odrzucona">Darlington FOAK 20333 CAD/kW overnight; NOAK 4. jednostka 33% cheaper; deklaracja producenta 2980 USD/kW odrzucona</td>
+            </tr>
+            
+            <tr>
+              <td>decommissioning_pct_capex_large_LWR</td>
+              <td>8 / 12 / 16</td>
+              <td><span class="tier-badge" style="background:#C0392B">Tier 3</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="NEA 2016: 0.46-0.73 mln USD/MWe dla &gt;1100 MWe, przeliczone na % CAPEX">NEA 2016: 0.46-0.73 mln USD/MWe dla &gt;1100 MWe, przeliczone na % CAPEX</td>
+            </tr>
+            
+            <tr>
+              <td>decommissioning_pct_capex_SMR</td>
+              <td>15 / 20 / 28</td>
+              <td><span class="tier-badge" style="background:#C0392B">Tier 3</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="NEA 2016: 1.07-1.22 mln USD/MWe dla jednostek o połowie mocy, ekstrapolacja efektu skali">NEA 2016: 1.07-1.22 mln USD/MWe dla jednostek o połowie mocy, ekstrapolacja efektu skali</td>
+            </tr>
+            
+            <tr>
+              <td>capacity_factor_large_LWR_pct</td>
+              <td>85 / 91 / 93</td>
+              <td><span class="tier-badge" style="background:#2E9E5B">Tier 1</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="AP1000 93% (Politechnika Śląska); APR-1400 90%; IAEA PRIS globalny UCF 85.1% (2025)">AP1000 93% (Politechnika Śląska); APR-1400 90%; IAEA PRIS globalny UCF 85.1% (2025)</td>
+            </tr>
+            
+            <tr>
+              <td>capacity_factor_SMR_pct</td>
+              <td>88 / 92 / 95</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="BWRX-300 &gt;95% (Synthos; raport PNNL techno-economic assessment)">BWRX-300 &gt;95% (Synthos; raport PNNL techno-economic assessment)</td>
+            </tr>
+            
+            <tr>
+              <td>leadtime_BWRX300_years</td>
+              <td>5 / 6.5 / 8</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="Darlington FOAK 7+ lat rzeczywiste (2022-2030) vs. deklaracja GE Hitachi 30-36 miesięcy NOAK">Darlington FOAK 7+ lat rzeczywiste (2022-2030) vs. deklaracja GE Hitachi 30-36 miesięcy NOAK</td>
+            </tr>
+            
+            <tr>
+              <td>fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural</td>
+              <td>20 / 27.5 / 35</td>
+              <td><span class="tier-badge" style="background:#2E9E5B">Tier 1</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="IAEA TECDOC-699; CANTEACH CJNPEPaper#15; NuclearFAQ.ca">IAEA TECDOC-699; CANTEACH CJNPEPaper#15; NuclearFAQ.ca</td>
+            </tr>
+            
+            <tr>
+              <td>CANDU_vs_PWR_fuel_cost_ratio</td>
+              <td>1.6 / 1.68 / 1.9</td>
+              <td><span class="tier-badge" style="background:#2E9E5B">Tier 1</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="CNS Proceedings &#x27;A Comparison of CANDU and PWR Fuelling Costs&#x27; (30-letnia analiza porównawcza)">CNS Proceedings &#x27;A Comparison of CANDU and PWR Fuelling Costs&#x27; (30-letnia analiza porównawcza)</td>
+            </tr>
+            
+            <tr>
+              <td>ap1000_fuel_usd_per_mwh</td>
+              <td>6 / 9 / 12</td>
+              <td><span class="tier-badge" style="background:#2E9E5B">Tier 1</span></td>
+              <td><span title="Potwierdzone / silne zrodlo">&#10003;</span></td>
+              <td class="source-cell" title="MIT ANP201 2024 report (9 USD/MWh); NEI Costs in Context 2024 (5.32-6.15 USD/MWh US fleet PWR)">MIT ANP201 2024 report (9 USD/MWh); NEI Costs in Context 2024 (5.32-6.15 USD/MWh US fleet PWR)</td>
+            </tr>
+            
+            <tr>
+              <td>AP1000_CAPEX_usd_per_kW</td>
+              <td>9,500 / 12,000 / 13,500</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="Oferta Westinghouse dla EJ1 Polska">Oferta Westinghouse dla EJ1 Polska</td>
+            </tr>
+            
+            <tr>
+              <td>CANDU_EC6_CAPEX_usd_per_kW<span class="offer-badge">Tier 2 &mdash; oferta przedprzetargowa AtkinsR&eacute;alis, luty 2026, nie kontrakt</span></td>
+              <td>10,100 / 11,500 / 12,900</td>
+              <td><span class="tier-badge" style="background:#F2B134">Tier 2</span></td>
+              <td><span title="Wymaga potwierdzenia">&#9888;</span></td>
+              <td class="source-cell" title="Oferta AtkinsRéalis dla EJ2 Polska, luty 2026, 4xEC6 750MWe brutto, 45-50 mld CAD / 117-130 mld PLN, min. Hodgson Warszawa (reuters.com, rp.pl, edgp.gazetaprawna.pl)">Oferta AtkinsRéalis dla EJ2 Polska, luty 2026, 4xEC6 750MWe brutto, 45-50 mld CAD / 117-130 mld PLN, min. Hodgson Warszawa (reuters.com, rp.pl, edgp.gazetaprawna.pl)</td>
+            </tr>
+            
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
