@@ -1,0 +1,55 @@
+# Krok 6 "quick sanity check" scenarios.
+#
+# THIS IS NOT THE PRODUCTION ASSUMPTIONS REGISTRY. It is a small, explicitly
+# placeholder file for a fast AP1000 vs CANDU-natural vs CANDU-SEU
+# comparison, kept deliberately separate from
+# config/assumptions_registry.json (the tiered, pydantic-validated registry)
+# so placeholder numbers never get mixed with confirmed Tier 1/2 data. When
+# the real registry lands, this file is retired, not merged.
+#
+# Per-field provenance:
+# - capex_usd: given directly this session (AP1000: PL offer 13500 USD/kW x
+#   1150 MW; CANDU EC6: 5000 USD/kW x 1000 MW, D2O cost component omitted —
+#   the D2O registry entries have not been pasted into this repo yet).
+# - fuel_usd_per_year: NO figure was given this session ("wg wcześniejszej
+#   notatki" refers to a note not present in this conversation's context).
+#   These are PLACEHOLDER values at a generic nuclear-fuel-cost order of
+#   magnitude (~6-7 USD/MWh), NOT tier2/sourced — flagged here and in the
+#   Krok 6 handoff summary as requiring confirmation. candu_seu is derived
+#   from candu_natural via the one real figure given this session:
+#   fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural, mid=27.5%.
+# - opex_usd_per_year / decomm_usd: held constant across all three
+#   scenarios (out of focus for Krok 6, which only varies CAPEX and fuel).
+#   Reused verbatim from the tests/test_lcoe_core.py illustrative fixture,
+#   not new fabricated figures.
+
+scenarios:
+  ap1000:
+    capex_usd: 15525000000       # tier2: PL offer, 13500 USD/kW x 1150 MW
+    fuel_usd_per_year: 60000000   # PLACEHOLDER, requires confirmation
+    opex_usd_per_year: 100000000
+    decomm_usd: 750000000
+    wacc_scenarios: [0.04, 0.08]
+    lifetime_years: 60
+    capacity_mw: 1150
+    capacity_factor: 0.90
+
+  candu_natural:
+    capex_usd: 5000000000        # tier3: EC6, 5000 USD/kW x 1000 MW, D2O omitted
+    fuel_usd_per_year: 50000000   # PLACEHOLDER, requires confirmation (100% reference for SEU below)
+    opex_usd_per_year: 100000000
+    decomm_usd: 750000000
+    wacc_scenarios: [0.04, 0.08]
+    lifetime_years: 60
+    capacity_mw: 1000
+    capacity_factor: 0.90
+
+  candu_seu:
+    capex_usd: 5000000000        # identical to candu_natural
+    fuel_usd_per_year: 36250000   # candu_natural * (1 - 0.275); the 27.5% reduction is the one real figure given this session
+    opex_usd_per_year: 100000000
+    decomm_usd: 750000000
+    wacc_scenarios: [0.04, 0.08]
+    lifetime_years: 60
+    capacity_mw: 1000
+    capacity_factor: 0.90

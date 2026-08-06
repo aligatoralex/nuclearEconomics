@@ -9,6 +9,8 @@ dependencies = [
     "SALib",
     "pydantic",
     "plotly",
+    "pyyaml",
+    "kaleido",
 ]
 
 [project.optional-dependencies]
