@@ -236,12 +236,40 @@ def build_dashboard_html() -> str:
     --color-candu: {COLOR_CANDU};
     --color-warning: {COLOR_WARNING};
     --color-neutral: {COLOR_NEUTRAL};
+    --bg-page: #fafafa;
+    --text-primary: #1a1a1a;
+    --border-color: #ddd;
+    --border-color-soft: #f0f0f0;
+    /* Chart panels stay white in both themes - the SVGs are pre-rendered
+       with a white plot background at generation time, so the panel
+       itself must match rather than go dark around a white chart. */
+    --card-bg: #ffffff;
+  }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{
+      --bg-page: #16181d;
+      --text-primary: #e8e8ea;
+      --border-color: #3a3d44;
+      --border-color-soft: #2a2d33;
+    }}
+  }}
+  :root[data-theme="dark"] {{
+    --bg-page: #16181d;
+    --text-primary: #e8e8ea;
+    --border-color: #3a3d44;
+    --border-color-soft: #2a2d33;
+  }}
+  :root[data-theme="light"] {{
+    --bg-page: #fafafa;
+    --text-primary: #1a1a1a;
+    --border-color: #ddd;
+    --border-color-soft: #f0f0f0;
   }}
   * {{ box-sizing: border-box; }}
   html, body {{
     margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden;
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    color: #1a1a1a; background: #fafafa;
+    color: var(--text-primary); background: var(--bg-page);
   }}
   .dashboard {{
     display: grid;
@@ -252,7 +280,7 @@ def build_dashboard_html() -> str:
   h1 {{ margin: 0; font-size: 1.1rem; color: var(--color-neutral); font-weight: 600; }}
   .kpi-row {{ display: flex; gap: 10px; }}
   .kpi-card {{
-    flex: 1; background: white; border-top: 4px solid; border-radius: 6px;
+    flex: 1; background: var(--card-bg); color: #1a1a1a; border-top: 4px solid; border-radius: 6px;
     padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     display: flex; flex-direction: column; justify-content: center;
   }}
@@ -262,24 +290,24 @@ def build_dashboard_html() -> str:
   .kpi-sub {{ font-size: 0.75rem; color: var(--color-neutral); margin-top: 2px; }}
   .chart-row {{ display: flex; gap: 10px; min-height: 0; }}
   .chart-panel {{
-    flex: 1; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    flex: 1; background: var(--card-bg); border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     padding: 4px; display: flex; flex-direction: column; min-height: 0;
   }}
   .chart-panel svg {{ width: 100%; height: auto; max-height: 100%; }}
   .chart-svg-wrap {{ flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }}
   .chart-source {{ font-size: 0.65rem; color: var(--color-neutral); padding: 2px 8px; }}
   .table-panel {{
-    background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    background: var(--card-bg); color: #1a1a1a; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     padding: 8px 14px; display: flex; flex-direction: column; min-height: 0;
   }}
   .table-panel h2 {{ margin: 0 0 4px 0; font-size: 0.85rem; color: var(--color-neutral); }}
   .table-scroll {{ overflow-y: auto; flex: 1; min-height: 0; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 0.72rem; }}
   thead th {{
-    position: sticky; top: 0; background: #fafafa; text-align: left;
-    padding: 3px 8px; border-bottom: 1px solid #ddd; color: var(--color-neutral);
+    position: sticky; top: 0; background: var(--card-bg); text-align: left;
+    padding: 3px 8px; border-bottom: 1px solid var(--border-color); color: var(--color-neutral);
   }}
-  tbody td {{ padding: 3px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }}
+  tbody td {{ padding: 3px 8px; border-bottom: 1px solid var(--border-color-soft); vertical-align: top; }}
   .source-cell {{
     max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     cursor: help;
