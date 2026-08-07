@@ -14,7 +14,9 @@ from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 from src.tornado_analysis import (
     AP1000_CAPEX_PARAM,
+    CANDU_CAPACITY_FACTOR_PARAM,
     CANDU_CAPEX_PARAM,
+    CANDU_DECOMM_PARAM,
     CANDU_PWR_RATIO_PARAM,
     CAPACITY_FACTOR_PARAM,
     CONSTRUCTION_AP1000_PARAM,
@@ -50,8 +52,8 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         ]
     return [
         wacc_param,
-        DECOMM_PARAM,
-        CAPACITY_FACTOR_PARAM,
+        CANDU_DECOMM_PARAM,
+        CANDU_CAPACITY_FACTOR_PARAM,
         D2O_CAPEX_PARAM,
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
@@ -75,8 +77,8 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
 
     # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
     # the IDC-inflated capital booked at t=0.
-    decomm_usd = capex_usd * values[DECOMM_PARAM] / 100
-    capacity_factor = values[CAPACITY_FACTOR_PARAM] / 100
+    decomm_usd = capex_usd * values[base_scenario.decomm_parameter_name] / 100
+    capacity_factor = values[base_scenario.capacity_factor_parameter_name] / 100
     wacc = values[base_scenario.wacc_parameter_name] / 100
 
     # Interest during construction on the real physical expenditure (overnight

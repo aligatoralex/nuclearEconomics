@@ -10,7 +10,9 @@ from src.sobol_analysis import build_sobol_parameter_names, lcoe_from_values
 from src.tornado_analysis import build_base_scenarios
 
 
-def _triangular_samples(unit_samples: np.ndarray, low: float, mid: float, high: float) -> np.ndarray:
+def _triangular_samples(
+    unit_samples: np.ndarray, low: float, mid: float, high: float
+) -> np.ndarray:
     """Same technique as monte_carlo_lhs.py's helper - a new, self-contained
     copy rather than an import, because monte_carlo_lhs.run_lhs_simulation's
     fixed 5-argument signature can't express derived quantities (CAPEX+D2O,
@@ -31,17 +33,22 @@ def run_apples_to_apples_lhs(
     CAPEX (Krok 9a/9b). WACC stays a point value per financing scenario
     (two separate runs), matching the convention from Kroki 6-8.
 
-    Uses PAIRED sampling (common random numbers) for parameters both
-    technologies share (decomm %, capacity_factor %, the base
-    ap1000_fuel_usd_per_mwh figure CANDU's fuel is also derived from):
-    one LHS draw per row feeds both technologies, so the comparison
-    isolates the parameters that actually differ (CAPEX, D2O, fuel
-    ratio) instead of drowning a genuinely small difference in
-    independent-sampling noise. With CAPEX now comparable between the
-    two technologies (Krok 9a), the true gap is much smaller than it
-    looked in Kroki 6-8 (where CANDU's CAPEX was an unfair ~2x-low
-    placeholder) - independent sampling made this gap flip sign between
-    runs at N=1000, which paired sampling fixes.
+    Uses PAIRED sampling (common random numbers) for the one parameter
+    both technologies still genuinely share: the base
+    ap1000_fuel_usd_per_mwh figure (AP1000 uses it directly; CANDU's fuel
+    is derived from it via CANDU_vs_PWR_fuel_cost_ratio). A single LHS
+    draw of that figure feeds both technologies per row, so the fuel
+    comparison isn't drowned in independent-sampling noise. Capacity
+    factor and decommissioning % are now technology-specific registry
+    parameters (F5: capacity_factor_CANDU_EC6_pct /
+    decommissioning_pct_capex_CANDU vs the large_LWR ones), so they no
+    longer overlap between the two param sets and are sampled
+    independently - which is correct, since the two technologies have
+    different documented CF and decommissioning profiles. The remaining
+    technology-specific parameters (CAPEX, D2O, fuel ratio) are likewise
+    sampled independently. With CAPEX now comparable between the two
+    technologies (Krok 9a), the true gap is much smaller than it looked
+    in Kroki 6-8 (where CANDU's CAPEX was an unfair ~2x-low placeholder).
 
     Returns a long-format DataFrame: scenario, wacc_scenario, lcoe_usd_mwh.
     """
@@ -54,11 +61,13 @@ def run_apples_to_apples_lhs(
         candu_scenario = base_scenarios[f"candu_ec6_{wacc_kind}"]
 
         ap1000_params = [
-            p for p in build_sobol_parameter_names(f"ap1000_{wacc_kind}")
+            p
+            for p in build_sobol_parameter_names(f"ap1000_{wacc_kind}")
             if p != ap1000_scenario.wacc_parameter_name
         ]
         candu_params = [
-            p for p in build_sobol_parameter_names(f"candu_ec6_{wacc_kind}")
+            p
+            for p in build_sobol_parameter_names(f"candu_ec6_{wacc_kind}")
             if p != candu_scenario.wacc_parameter_name
         ]
         union_params = sorted(set(ap1000_params) | set(candu_params))
@@ -77,8 +86,12 @@ def run_apples_to_apples_lhs(
                 unit_samples[:, j], value_range.min, value_range.mid, value_range.max
             )
 
-        ap1000_wacc = registry_by_name[ap1000_scenario.wacc_parameter_name].value_or_range.mid
-        candu_wacc = registry_by_name[candu_scenario.wacc_parameter_name].value_or_range.mid
+        ap1000_wacc = registry_by_name[
+            ap1000_scenario.wacc_parameter_name
+        ].value_or_range.mid
+        candu_wacc = registry_by_name[
+            candu_scenario.wacc_parameter_name
+        ].value_or_range.mid
 
         for i in range(n_samples):
             row_values = {name: sampled[name][i] for name in union_params}
@@ -110,7 +123,9 @@ if __name__ == "__main__":
     from src.schemas import load_assumptions_registry
 
     repo_root = Path(__file__).resolve().parent.parent
-    registry = load_assumptions_registry(repo_root / "config" / "assumptions_registry.json")
+    registry = load_assumptions_registry(
+        repo_root / "config" / "assumptions_registry.json"
+    )
 
     df = run_apples_to_apples_lhs(registry)
     output_path = repo_root / "data" / "output" / "step9_apples_to_apples_lcoe.csv"

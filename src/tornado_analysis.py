@@ -14,6 +14,8 @@ from src.schemas import AssumptionEntry
 
 DECOMM_PARAM = "decommissioning_pct_capex_large_LWR"
 CAPACITY_FACTOR_PARAM = "capacity_factor_large_LWR_pct"
+CANDU_CAPACITY_FACTOR_PARAM = "capacity_factor_CANDU_EC6_pct"
+CANDU_DECOMM_PARAM = "decommissioning_pct_capex_CANDU"
 D2O_CAPEX_PARAM = "D2O_total_upfront_capex_usd_per_1000MWe"
 FUEL_PARAM = "ap1000_fuel_usd_per_mwh"
 CANDU_PWR_RATIO_PARAM = "CANDU_vs_PWR_fuel_cost_ratio"
@@ -45,6 +47,8 @@ class BaseScenario:
     capacity_mw: float
     wacc_parameter_name: str
     construction_years_parameter_name: str
+    capacity_factor_parameter_name: str
+    decomm_parameter_name: str
     applicable_parameter_names: list[str]
 
 
@@ -60,12 +64,17 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     stay as constants here (same figures as Krok 6/7b).
     """
     registry_by_name = {e.parameter: e for e in registry}
-    capacity_factor = registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
+    ap1000_capacity_factor = (
+        registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
+    )
+    candu_capacity_factor = (
+        registry_by_name[CANDU_CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
+    )
 
     ap1000_fuel_usd_per_mwh = registry_by_name[FUEL_PARAM].value_or_range.mid
     ap1000_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
         capacity_mw=1150.0,
-        capacity_factor=capacity_factor,
+        capacity_factor=ap1000_capacity_factor,
         base_fuel_usd_per_mwh=ap1000_fuel_usd_per_mwh,
     )
 
@@ -75,7 +84,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     )
     candu_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
         capacity_mw=1000.0,
-        capacity_factor=capacity_factor,
+        capacity_factor=candu_capacity_factor,
         base_fuel_usd_per_mwh=candu_fuel_usd_per_mwh,
     )
 
@@ -99,16 +108,16 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     candu_applicable = {
         "WACC_government_pct": [
             "WACC_government_pct",
-            DECOMM_PARAM,
-            CAPACITY_FACTOR_PARAM,
+            CANDU_DECOMM_PARAM,
+            CANDU_CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
             CANDU_CAPEX_PARAM,
             CONSTRUCTION_CANDU_PARAM,
         ],
         "WACC_commercial_pct": [
             "WACC_commercial_pct",
-            DECOMM_PARAM,
-            CAPACITY_FACTOR_PARAM,
+            CANDU_DECOMM_PARAM,
+            CANDU_CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
             CANDU_CAPEX_PARAM,
             CONSTRUCTION_CANDU_PARAM,
@@ -127,6 +136,8 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             capacity_mw=1150.0,
             wacc_parameter_name=wacc_param,
             construction_years_parameter_name=CONSTRUCTION_AP1000_PARAM,
+            capacity_factor_parameter_name=CAPACITY_FACTOR_PARAM,
+            decomm_parameter_name=DECOMM_PARAM,
             applicable_parameter_names=ap1000_applicable[wacc_param],
             **common,
         )
@@ -137,6 +148,8 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             capacity_mw=1000.0,
             wacc_parameter_name=wacc_param,
             construction_years_parameter_name=CONSTRUCTION_CANDU_PARAM,
+            capacity_factor_parameter_name=CANDU_CAPACITY_FACTOR_PARAM,
+            decomm_parameter_name=CANDU_DECOMM_PARAM,
             applicable_parameter_names=candu_applicable[wacc_param],
             **common,
         )
@@ -183,12 +196,14 @@ def _lcoe_at_bound(
 
     # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
     # the IDC-inflated capital booked at t=0.
-    decomm_pct_mid = registry_by_name[DECOMM_PARAM].value_or_range.mid
-    decomm_pct = value(DECOMM_PARAM, decomm_pct_mid)
+    decomm_param = base_scenario.decomm_parameter_name
+    decomm_pct_mid = registry_by_name[decomm_param].value_or_range.mid
+    decomm_pct = value(decomm_param, decomm_pct_mid)
     decomm_usd = capex_usd * decomm_pct / 100
 
-    capacity_factor_mid = registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid
-    capacity_factor = value(CAPACITY_FACTOR_PARAM, capacity_factor_mid) / 100
+    cf_param = base_scenario.capacity_factor_parameter_name
+    capacity_factor_mid = registry_by_name[cf_param].value_or_range.mid
+    capacity_factor = value(cf_param, capacity_factor_mid) / 100
 
     wacc_mid = registry_by_name[base_scenario.wacc_parameter_name].value_or_range.mid
     wacc = value(base_scenario.wacc_parameter_name, wacc_mid) / 100

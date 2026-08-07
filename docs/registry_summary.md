@@ -10,6 +10,7 @@ Sorted by tier descending (least certain first).
 | D2O_total_upfront_capex_usd_per_1000MWe | 400000000.0 | 3 | True |
 | decommissioning_pct_capex_large_LWR | 12.0 | 3 | True |
 | decommissioning_pct_capex_SMR | 20.0 | 3 | True |
+| decommissioning_pct_capex_CANDU | 14.0 | 3 | True |
 | D2O_price_usd_per_kg | 650.0 | 2 | True |
 | WACC_government_pct | 4.0 | 2 | True |
 | WACC_commercial_pct | 8.0 | 2 | False |
@@ -20,6 +21,7 @@ Sorted by tier descending (least certain first).
 | CANDU_EC6_CAPEX_usd_per_kW | 11500.0 | 2 | True |
 | construction_years_AP1000 | 7.0 | 2 | True |
 | construction_years_CANDU_EC6 | 6.0 | 2 | True |
+| capacity_factor_CANDU_EC6_pct | 87.0 | 2 | True |
 | D2O_annual_makeup_losses_tonnes_per_year | 3.0 | 1 | False |
 | capacity_factor_large_LWR_pct | 91.0 | 1 | False |
 | fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural | 27.5 | 1 | False |
