@@ -157,7 +157,9 @@ def _lcoe_at_bound(
             return getattr(registry_by_name[param_name].value_or_range, bound)
         return mid_fallback
 
-    capex_per_kw_mid = registry_by_name[base_scenario.capex_per_kw_parameter_name].value_or_range.mid
+    capex_per_kw_mid = registry_by_name[
+        base_scenario.capex_per_kw_parameter_name
+    ].value_or_range.mid
     capex_per_kw = value(base_scenario.capex_per_kw_parameter_name, capex_per_kw_mid)
     base_capex_usd = capex_per_kw * base_scenario.capacity_mw * 1000  # USD/kW -> USD/MW
 
@@ -242,6 +244,11 @@ if __name__ == "__main__":
         commercial_df["wacc_scenario"] = "commercial"
 
         combined = pd.concat([government_df, commercial_df], ignore_index=True)
-        output_path = repo_root / "data" / "output" / f"step7_tornado_{tech_name}.csv"
+        # Standalone re-run output goes to a distinct *_current_* path so it
+        # cannot clobber the frozen pre-CAPEX baseline in
+        # data/output/step7_8_pre_capex_baseline/.
+        output_path = (
+            repo_root / "data" / "output" / f"step7_tornado_current_{tech_name}.csv"
+        )
         combined.to_csv(output_path, index=False)
         print(f"Wrote {len(combined)} rows to {output_path}")

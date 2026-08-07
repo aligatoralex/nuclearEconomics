@@ -37,7 +37,13 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         "WACC_government_pct" if "government" in scenario_key else "WACC_commercial_pct"
     )
     if scenario_key.startswith("ap1000"):
-        return [wacc_param, DECOMM_PARAM, CAPACITY_FACTOR_PARAM, FUEL_PARAM, AP1000_CAPEX_PARAM]
+        return [
+            wacc_param,
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+            FUEL_PARAM,
+            AP1000_CAPEX_PARAM,
+        ]
     return [
         wacc_param,
         DECOMM_PARAM,
@@ -182,14 +188,22 @@ if __name__ == "__main__":
             main_frames.append(main_effects)
             interaction_frames.append(interactions)
 
+        # Standalone re-run output goes to distinct *_current_* paths so it
+        # cannot clobber the frozen pre-CAPEX baseline in
+        # data/output/step7_8_pre_capex_baseline/.
         main_combined = pd.concat(main_frames, ignore_index=True)
-        main_path = repo_root / "data" / "output" / f"step8_sobol_{tech_name}.csv"
+        main_path = (
+            repo_root / "data" / "output" / f"step8_sobol_current_{tech_name}.csv"
+        )
         main_combined.to_csv(main_path, index=False)
         print(f"Wrote {len(main_combined)} rows to {main_path}")
 
         interactions_combined = pd.concat(interaction_frames, ignore_index=True)
         interactions_path = (
-            repo_root / "data" / "output" / f"step8_sobol_interactions_{tech_name}.csv"
+            repo_root
+            / "data"
+            / "output"
+            / f"step8_sobol_interactions_current_{tech_name}.csv"
         )
         interactions_combined.to_csv(interactions_path, index=False)
         print(f"Wrote {len(interactions_combined)} rows to {interactions_path}")
