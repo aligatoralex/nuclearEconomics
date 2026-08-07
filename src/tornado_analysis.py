@@ -8,6 +8,7 @@ from src.fuel_cost import (
     calculate_fuel_cost_usd_per_year,
     candu_natural_fuel_usd_per_mwh,
 )
+from src.idc_engine import calculate_idc
 from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 
@@ -18,6 +19,8 @@ FUEL_PARAM = "ap1000_fuel_usd_per_mwh"
 CANDU_PWR_RATIO_PARAM = "CANDU_vs_PWR_fuel_cost_ratio"
 AP1000_CAPEX_PARAM = "AP1000_CAPEX_usd_per_kW"
 CANDU_CAPEX_PARAM = "CANDU_EC6_CAPEX_usd_per_kW"
+CONSTRUCTION_AP1000_PARAM = "construction_years_AP1000"
+CONSTRUCTION_CANDU_PARAM = "construction_years_CANDU_EC6"
 
 
 @dataclass
@@ -41,6 +44,7 @@ class BaseScenario:
     lifetime_years: int
     capacity_mw: float
     wacc_parameter_name: str
+    construction_years_parameter_name: str
     applicable_parameter_names: list[str]
 
 
@@ -82,12 +86,14 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
             AP1000_CAPEX_PARAM,
+            CONSTRUCTION_AP1000_PARAM,
         ],
         "WACC_commercial_pct": [
             "WACC_commercial_pct",
             DECOMM_PARAM,
             CAPACITY_FACTOR_PARAM,
             AP1000_CAPEX_PARAM,
+            CONSTRUCTION_AP1000_PARAM,
         ],
     }
     candu_applicable = {
@@ -97,6 +103,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
             CANDU_CAPEX_PARAM,
+            CONSTRUCTION_CANDU_PARAM,
         ],
         "WACC_commercial_pct": [
             "WACC_commercial_pct",
@@ -104,6 +111,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
             CANDU_CAPEX_PARAM,
+            CONSTRUCTION_CANDU_PARAM,
         ],
     }
 
@@ -118,6 +126,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             fuel_usd_per_year=ap1000_fuel_usd_per_year,
             capacity_mw=1150.0,
             wacc_parameter_name=wacc_param,
+            construction_years_parameter_name=CONSTRUCTION_AP1000_PARAM,
             applicable_parameter_names=ap1000_applicable[wacc_param],
             **common,
         )
@@ -127,6 +136,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             fuel_usd_per_year=candu_fuel_usd_per_year,
             capacity_mw=1000.0,
             wacc_parameter_name=wacc_param,
+            construction_years_parameter_name=CONSTRUCTION_CANDU_PARAM,
             applicable_parameter_names=candu_applicable[wacc_param],
             **common,
         )
@@ -171,6 +181,8 @@ def _lcoe_at_bound(
     )
     capex_usd = base_capex_usd + d2o_add_on
 
+    # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
+    # the IDC-inflated capital booked at t=0.
     decomm_pct_mid = registry_by_name[DECOMM_PARAM].value_or_range.mid
     decomm_pct = value(DECOMM_PARAM, decomm_pct_mid)
     decomm_usd = capex_usd * decomm_pct / 100
@@ -181,8 +193,18 @@ def _lcoe_at_bound(
     wacc_mid = registry_by_name[base_scenario.wacc_parameter_name].value_or_range.mid
     wacc = value(base_scenario.wacc_parameter_name, wacc_mid) / 100
 
+    # Interest during construction: financing cost accrued on the real
+    # physical expenditure (overnight capex incl. D2O) over the build, booked
+    # into capital at commercial-operation date (t=0 in calculate_lcoe).
+    construction_param = base_scenario.construction_years_parameter_name
+    construction_years_mid = registry_by_name[construction_param].value_or_range.mid
+    construction_years_value = value(construction_param, construction_years_mid)
+    cy = max(1, round(float(construction_years_value)))
+    idc = calculate_idc(capex_usd, cy, wacc)
+    capex_effective = capex_usd + idc
+
     return target_fn(
-        capex_usd=capex_usd,
+        capex_usd=capex_effective,
         opex_usd_per_year=base_scenario.opex_usd_per_year,
         fuel_usd_per_year=base_scenario.fuel_usd_per_year,
         decomm_usd=decomm_usd,

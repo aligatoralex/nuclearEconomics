@@ -10,10 +10,13 @@ def calculate_lcoe(
 ) -> float:
     """Deterministic point-value LCOE (USD/MWh) via discounted cash flow.
 
-    CAPEX is treated as an undiscounted overnight cost at t=0 (construction
-    expenditure timing is handled separately by the IDC engine). OPEX and
-    fuel are constant annual costs from t=1..lifetime_years; decommissioning
-    is a single cost in the final operating year.
+    capex_usd is the total capital booked (undiscounted) at t=0, the
+    commercial-operation date. Interest during construction, when applicable,
+    is computed by idc_engine.calculate_idc from a beta S-curve expenditure
+    profile and added to the overnight capex by the analysis layer before
+    being passed here as capex_usd. OPEX and fuel are constant annual costs
+    from t=1..lifetime_years; decommissioning is a single cost in the final
+    operating year.
     """
     annual_generation_mwh = capacity_mw * 8760 * capacity_factor
 

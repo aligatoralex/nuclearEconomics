@@ -9,6 +9,7 @@ from src.fuel_cost import (
     calculate_fuel_cost_usd_per_year,
     candu_natural_fuel_usd_per_mwh,
 )
+from src.idc_engine import calculate_idc
 from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 from src.tornado_analysis import (
@@ -16,6 +17,8 @@ from src.tornado_analysis import (
     CANDU_CAPEX_PARAM,
     CANDU_PWR_RATIO_PARAM,
     CAPACITY_FACTOR_PARAM,
+    CONSTRUCTION_AP1000_PARAM,
+    CONSTRUCTION_CANDU_PARAM,
     D2O_CAPEX_PARAM,
     DECOMM_PARAM,
     FUEL_PARAM,
@@ -43,6 +46,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
             CAPACITY_FACTOR_PARAM,
             FUEL_PARAM,
             AP1000_CAPEX_PARAM,
+            CONSTRUCTION_AP1000_PARAM,
         ]
     return [
         wacc_param,
@@ -52,6 +56,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
         CANDU_CAPEX_PARAM,
+        CONSTRUCTION_CANDU_PARAM,
     ]
 
 
@@ -68,9 +73,18 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     d2o_add_on = values.get(D2O_CAPEX_PARAM, 0.0)
     capex_usd = base_capex_usd + d2o_add_on
 
+    # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
+    # the IDC-inflated capital booked at t=0.
     decomm_usd = capex_usd * values[DECOMM_PARAM] / 100
     capacity_factor = values[CAPACITY_FACTOR_PARAM] / 100
     wacc = values[base_scenario.wacc_parameter_name] / 100
+
+    # Interest during construction on the real physical expenditure (overnight
+    # capex incl. D2O), booked into capital at t=0.
+    construction_years_value = values[base_scenario.construction_years_parameter_name]
+    cy = max(1, round(float(construction_years_value)))
+    idc = calculate_idc(capex_usd, cy, wacc)
+    capex_effective = capex_usd + idc
 
     if CANDU_PWR_RATIO_PARAM in values:
         fuel_usd_per_mwh = candu_natural_fuel_usd_per_mwh(
@@ -83,7 +97,7 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     )
 
     return calculate_lcoe(
-        capex_usd=capex_usd,
+        capex_usd=capex_effective,
         opex_usd_per_year=base_scenario.opex_usd_per_year,
         fuel_usd_per_year=fuel_usd_per_year,
         decomm_usd=decomm_usd,
