@@ -7,6 +7,7 @@ import pandas as pd
 from src.fuel_cost import (
     calculate_fuel_cost_usd_per_year,
     candu_natural_fuel_usd_per_mwh,
+    candu_seu_fuel_usd_per_mwh,
 )
 from src.idc_engine import calculate_idc
 from src.lcoe_core import calculate_lcoe
@@ -24,6 +25,7 @@ AP1000_CAPEX_PARAM = "AP1000_CAPEX_usd_per_kW"
 CANDU_CAPEX_PARAM = "CANDU_EC6_CAPEX_usd_per_kW"
 CONSTRUCTION_AP1000_PARAM = "construction_years_AP1000"
 CONSTRUCTION_CANDU_PARAM = "construction_years_CANDU_EC6"
+SEU_REDUCTION_PARAM = "fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural"
 
 
 @dataclass
@@ -51,6 +53,7 @@ class BaseScenario:
     capacity_factor_parameter_name: str
     decomm_parameter_name: str
     applicable_parameter_names: list[str]
+    is_seu: bool = False
 
 
 def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScenario]:
@@ -87,6 +90,18 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
         capacity_mw=1000.0,
         capacity_factor=candu_capacity_factor,
         base_fuel_usd_per_mwh=candu_fuel_usd_per_mwh,
+    )
+
+    # B5: CANDU-SEU (slightly enriched uranium) variant - same plant/CAPEX/
+    # OPEX/decomm as CANDU-natural, cheaper fuel cycle only.
+    seu_reduction_pct = registry_by_name[SEU_REDUCTION_PARAM].value_or_range.mid
+    candu_seu_fuel_usd_per_mwh_value = candu_seu_fuel_usd_per_mwh(
+        candu_fuel_usd_per_mwh, seu_reduction_pct
+    )
+    candu_seu_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
+        capacity_mw=1000.0,
+        capacity_factor=candu_capacity_factor,
+        base_fuel_usd_per_mwh=candu_seu_fuel_usd_per_mwh_value,
     )
 
     common = {"opex_usd_per_year": 100_000_000.0, "lifetime_years": 60}
@@ -154,6 +169,23 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             capacity_factor_parameter_name=CANDU_CAPACITY_FACTOR_PARAM,
             decomm_parameter_name=CANDU_DECOMM_PARAM,
             applicable_parameter_names=candu_applicable[wacc_param],
+            **common,
+        )
+        # B5: same physical plant as candu_ec6, cheaper (SEU) fuel cycle.
+        # OAT tornado deliberately excludes fuel-cost parameters for every
+        # scenario (see run_oat_tornado docstring), so applicable_parameter_names
+        # reuses candu_applicable unchanged - only fuel_usd_per_year differs.
+        scenarios[f"candu_ec6_seu_{wacc_kind}"] = BaseScenario(
+            name="candu_ec6_seu",
+            capex_per_kw_parameter_name=CANDU_CAPEX_PARAM,
+            fuel_usd_per_year=candu_seu_fuel_usd_per_year,
+            capacity_mw=1000.0,
+            wacc_parameter_name=wacc_param,
+            construction_years_parameter_name=CONSTRUCTION_CANDU_PARAM,
+            capacity_factor_parameter_name=CANDU_CAPACITY_FACTOR_PARAM,
+            decomm_parameter_name=CANDU_DECOMM_PARAM,
+            applicable_parameter_names=candu_applicable[wacc_param],
+            is_seu=True,
             **common,
         )
     return scenarios
@@ -287,7 +319,7 @@ if __name__ == "__main__":
     )
     scenarios = build_base_scenarios(registry)
 
-    for tech_name in ("ap1000", "candu_ec6"):
+    for tech_name in ("ap1000", "candu_ec6", "candu_ec6_seu"):
         government_df = run_oat_tornado(registry, scenarios[f"{tech_name}_government"])
         government_df["wacc_scenario"] = "government"
         commercial_df = run_oat_tornado(registry, scenarios[f"{tech_name}_commercial"])

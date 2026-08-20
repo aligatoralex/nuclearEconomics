@@ -59,6 +59,7 @@ def run_apples_to_apples_lhs(
     for wacc_kind in ("government", "commercial"):
         ap1000_scenario = base_scenarios[f"ap1000_{wacc_kind}"]
         candu_scenario = base_scenarios[f"candu_ec6_{wacc_kind}"]
+        candu_seu_scenario = base_scenarios[f"candu_ec6_seu_{wacc_kind}"]
 
         ap1000_params = [
             p
@@ -70,7 +71,14 @@ def run_apples_to_apples_lhs(
             for p in build_sobol_parameter_names(f"candu_ec6_{wacc_kind}")
             if p != candu_scenario.wacc_parameter_name
         ]
-        union_params = sorted(set(ap1000_params) | set(candu_params))
+        candu_seu_params = [
+            p
+            for p in build_sobol_parameter_names(f"candu_ec6_seu_{wacc_kind}")
+            if p != candu_seu_scenario.wacc_parameter_name
+        ]
+        union_params = sorted(
+            set(ap1000_params) | set(candu_params) | set(candu_seu_params)
+        )
 
         problem = {
             "num_vars": len(union_params),
@@ -113,6 +121,24 @@ def run_apples_to_apples_lhs(
                     "scenario": "candu_ec6",
                     "wacc_scenario": wacc_kind,
                     "lcoe_usd_mwh": lcoe_from_values(candu_scenario, candu_values),
+                }
+            )
+
+            # B5: CANDU-SEU shares row_values with CANDU-natural for every
+            # parameter they have in common (same common-random-numbers
+            # draw), differing only in the extra SEU fuel-cycle-reduction
+            # dimension - the paired-sampling technique this module already
+            # uses for ap1000_fuel_usd_per_mwh, extended to a same-plant
+            # variant pair.
+            candu_seu_values = {p: row_values[p] for p in candu_seu_params}
+            candu_seu_values[candu_seu_scenario.wacc_parameter_name] = candu_wacc
+            rows.append(
+                {
+                    "scenario": "candu_ec6_seu",
+                    "wacc_scenario": wacc_kind,
+                    "lcoe_usd_mwh": lcoe_from_values(
+                        candu_seu_scenario, candu_seu_values
+                    ),
                 }
             )
 

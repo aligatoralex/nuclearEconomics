@@ -8,6 +8,7 @@ from SALib.sample import sobol as sobol_sample
 from src.fuel_cost import (
     calculate_fuel_cost_usd_per_year,
     candu_natural_fuel_usd_per_mwh,
+    candu_seu_fuel_usd_per_mwh,
 )
 from src.idc_engine import calculate_idc
 from src.lcoe_core import calculate_lcoe
@@ -25,6 +26,7 @@ from src.tornado_analysis import (
     D2O_OPEX_PARAM,
     DECOMM_PARAM,
     FUEL_PARAM,
+    SEU_REDUCTION_PARAM,
     BaseScenario,
 )
 
@@ -51,7 +53,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
             AP1000_CAPEX_PARAM,
             CONSTRUCTION_AP1000_PARAM,
         ]
-    return [
+    names = [
         wacc_param,
         CANDU_DECOMM_PARAM,
         CANDU_CAPACITY_FACTOR_PARAM,
@@ -62,6 +64,11 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         CANDU_CAPEX_PARAM,
         CONSTRUCTION_CANDU_PARAM,
     ]
+    # B5: CANDU-SEU adds the SEU-vs-natural fuel-cycle cost reduction as a
+    # further sampled dimension on top of the CANDU-natural parameter set.
+    if scenario_key.startswith("candu_ec6_seu"):
+        names.append(SEU_REDUCTION_PARAM)
+    return names
 
 
 def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> float:
@@ -97,6 +104,10 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
         fuel_usd_per_mwh = candu_natural_fuel_usd_per_mwh(
             values[FUEL_PARAM], values[CANDU_PWR_RATIO_PARAM]
         )
+        if SEU_REDUCTION_PARAM in values:
+            fuel_usd_per_mwh = candu_seu_fuel_usd_per_mwh(
+                fuel_usd_per_mwh, values[SEU_REDUCTION_PARAM]
+            )
     else:
         fuel_usd_per_mwh = values[FUEL_PARAM]
     fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
@@ -195,7 +206,7 @@ if __name__ == "__main__":
     )
     scenarios = build_base_scenarios(registry)
 
-    for tech_name in ("ap1000", "candu_ec6"):
+    for tech_name in ("ap1000", "candu_ec6", "candu_ec6_seu"):
         main_frames = []
         interaction_frames = []
         for wacc_kind in ("government", "commercial"):
