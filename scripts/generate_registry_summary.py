@@ -42,14 +42,16 @@ def main() -> None:
         "",
         (
             "Note on in-scope provenance and known limitations: "
-            "`D2O_price_usd_per_kg` and `D2O_inventory_tonnes_per_1000MWe_EC6` are "
-            "not sampled directly at runtime but are the provenance of the in-scope "
-            "`D2O_total_upfront_capex_usd_per_1000MWe`, while "
-            "`fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural` and "
-            "`D2O_annual_makeup_losses_tonnes_per_year` are currently unused (SEU "
-            "scenario retired; no annual D2O makeup in OPEX) - all four remain "
-            "flagged in-scope as supporting derivations or documented known "
-            "limitations rather than out-of-scope SMR parameters."
+            "`D2O_price_usd_per_kg`, `D2O_inventory_tonnes_per_1000MWe_EC6` and "
+            "`D2O_annual_makeup_losses_tonnes_per_year` are not sampled directly at "
+            "runtime but are the provenance of the in-scope "
+            "`D2O_total_upfront_capex_usd_per_1000MWe` and "
+            "`D2O_annual_makeup_opex_usd_per_year` (the latter wires the D2O annual "
+            "makeup cost into CANDU OPEX as of B2), while "
+            "`fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural` is currently "
+            "unused (SEU scenario retired) - all remain flagged in-scope as "
+            "supporting derivations or documented known limitations rather than "
+            "out-of-scope SMR parameters."
         ),
         "",
         "Each table is sorted by tier descending (least certain first).",

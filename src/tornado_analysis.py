@@ -17,6 +17,7 @@ CAPACITY_FACTOR_PARAM = "capacity_factor_large_LWR_pct"
 CANDU_CAPACITY_FACTOR_PARAM = "capacity_factor_CANDU_EC6_pct"
 CANDU_DECOMM_PARAM = "decommissioning_pct_capex_CANDU"
 D2O_CAPEX_PARAM = "D2O_total_upfront_capex_usd_per_1000MWe"
+D2O_OPEX_PARAM = "D2O_annual_makeup_opex_usd_per_year"
 FUEL_PARAM = "ap1000_fuel_usd_per_mwh"
 CANDU_PWR_RATIO_PARAM = "CANDU_vs_PWR_fuel_cost_ratio"
 AP1000_CAPEX_PARAM = "AP1000_CAPEX_usd_per_kW"
@@ -111,6 +112,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             CANDU_DECOMM_PARAM,
             CANDU_CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
+            D2O_OPEX_PARAM,
             CANDU_CAPEX_PARAM,
             CONSTRUCTION_CANDU_PARAM,
         ],
@@ -119,6 +121,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             CANDU_DECOMM_PARAM,
             CANDU_CAPACITY_FACTOR_PARAM,
             D2O_CAPEX_PARAM,
+            D2O_OPEX_PARAM,
             CANDU_CAPEX_PARAM,
             CONSTRUCTION_CANDU_PARAM,
         ],
@@ -205,6 +208,16 @@ def _lcoe_at_bound(
     capacity_factor_mid = registry_by_name[cf_param].value_or_range.mid
     capacity_factor = value(cf_param, capacity_factor_mid) / 100
 
+    # D2O annual makeup losses (CANDU only) add to OPEX, mirroring the D2O
+    # capex add-on above: a real physical cost previously left unwired.
+    d2o_opex_mid = registry_by_name[D2O_OPEX_PARAM].value_or_range.mid
+    d2o_opex_add_on = (
+        value(D2O_OPEX_PARAM, d2o_opex_mid)
+        if D2O_OPEX_PARAM in base_scenario.applicable_parameter_names
+        else 0.0
+    )
+    opex_usd_per_year = base_scenario.opex_usd_per_year + d2o_opex_add_on
+
     wacc_mid = registry_by_name[base_scenario.wacc_parameter_name].value_or_range.mid
     wacc = value(base_scenario.wacc_parameter_name, wacc_mid) / 100
 
@@ -220,7 +233,7 @@ def _lcoe_at_bound(
 
     return target_fn(
         capex_usd=capex_effective,
-        opex_usd_per_year=base_scenario.opex_usd_per_year,
+        opex_usd_per_year=opex_usd_per_year,
         fuel_usd_per_year=base_scenario.fuel_usd_per_year,
         decomm_usd=decomm_usd,
         wacc=wacc,

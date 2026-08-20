@@ -20,7 +20,7 @@ PRIORITY_CONFIRMATION_PARAMETERS = {
 def test_registry_loads_all_entries_valid():
     entries = load_assumptions_registry(REGISTRY_PATH)
 
-    assert len(entries) == 21
+    assert len(entries) == 22
     for entry in entries:
         if entry.tier == 3:
             assert entry.requires_confirmation is True

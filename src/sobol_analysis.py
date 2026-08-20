@@ -22,6 +22,7 @@ from src.tornado_analysis import (
     CONSTRUCTION_AP1000_PARAM,
     CONSTRUCTION_CANDU_PARAM,
     D2O_CAPEX_PARAM,
+    D2O_OPEX_PARAM,
     DECOMM_PARAM,
     FUEL_PARAM,
     BaseScenario,
@@ -55,6 +56,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         CANDU_DECOMM_PARAM,
         CANDU_CAPACITY_FACTOR_PARAM,
         D2O_CAPEX_PARAM,
+        D2O_OPEX_PARAM,
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
         CANDU_CAPEX_PARAM,
@@ -74,6 +76,9 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     base_capex_usd = capex_per_kw * base_scenario.capacity_mw * 1000  # USD/kW -> USD/MW
     d2o_add_on = values.get(D2O_CAPEX_PARAM, 0.0)
     capex_usd = base_capex_usd + d2o_add_on
+
+    # D2O annual makeup losses (CANDU only) add to OPEX.
+    opex_usd_per_year = base_scenario.opex_usd_per_year + values.get(D2O_OPEX_PARAM, 0.0)
 
     # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
     # the IDC-inflated capital booked at t=0.
@@ -100,7 +105,7 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
 
     return calculate_lcoe(
         capex_usd=capex_effective,
-        opex_usd_per_year=base_scenario.opex_usd_per_year,
+        opex_usd_per_year=opex_usd_per_year,
         fuel_usd_per_year=fuel_usd_per_year,
         decomm_usd=decomm_usd,
         wacc=wacc,
