@@ -15,7 +15,7 @@ Each table is sorted by tier descending (least certain first).
 | D2O_inventory_tonnes_per_1000MWe_EC6 | 618.0 | 3 | True |
 | D2O_total_upfront_capex_usd_per_1000MWe | 400000000.0 | 3 | True |
 | decommissioning_pct_capex_large_LWR | 12.0 | 3 | True |
-| decommissioning_pct_capex_CANDU | 14.0 | 3 | True |
+| decommissioning_pct_capex_CANDU | 15.0 | 3 | True |
 | CANDU_EC6_OM_usd_per_mwh | 15.0 | 3 | True |
 | lifetime_years_CANDU_EC6 | 60.0 | 3 | True |
 | capacity_mw_CANDU_EC6 | 1000.0 | 3 | True |
@@ -24,8 +24,8 @@ Each table is sorted by tier descending (least certain first).
 | WACC_commercial_pct | 8.0 | 2 | False |
 | AP1000_CAPEX_usd_per_kW | 12000.0 | 2 | True |
 | CANDU_EC6_CAPEX_usd_per_kW | 11500.0 | 2 | True |
-| construction_years_AP1000 | 7.0 | 2 | True |
-| construction_years_CANDU_EC6 | 6.0 | 2 | True |
+| construction_years_AP1000 | 9.0 | 2 | True |
+| construction_years_CANDU_EC6 | 6.5 | 2 | True |
 | capacity_factor_CANDU_EC6_pct | 87.0 | 2 | True |
 | D2O_annual_makeup_opex_usd_per_year | 1950000.0 | 2 | True |
 | AP1000_OM_usd_per_mwh | 12.0 | 2 | True |
