@@ -10,11 +10,15 @@ REGISTRY_PATH = (
     Path(__file__).resolve().parent.parent / "config" / "assumptions_registry.json"
 )
 
-# Seed-pinned ground truth (F4). Captured from run_sobol_analysis at the
-# default n_base_samples=512, seed=42 against the CURRENT registry + model
-# (IDC wired in, per-technology construction_years_* and CANDU-specific
-# CAPEX/CF params). Saltelli sampling + SALib analyze are deterministic at a
-# fixed seed, so the exact S1/ST values are stable and worth pinning.
+# Seed-pinned ground truth (P2, re-pinned after the B1-B5 critical-review
+# backlog landed). Captured from run_sobol_analysis at the default
+# n_base_samples=512, seed=42 against the CURRENT registry + model: D2O
+# annual makeup OPEX and OM_usd_per_mwh (per-technology, B2/B3) are now
+# competing Sobol dimensions alongside CAPEX/WACC/construction/CF/decomm,
+# research-updated construction/CF/decomm ranges (B1), and CANDU-SEU (B5)
+# adds three more build_base_scenarios() keys with their own SEU-reduction
+# dimension. Saltelli sampling + SALib analyze are deterministic at a fixed
+# seed, so the exact S1/ST values are stable and worth pinning.
 #
 # For each build_base_scenarios() key: the top ~3 parameters by ST, each
 # with its expected (S1, ST). Pinning magnitudes (not just ordering) is what
@@ -30,24 +34,34 @@ REGISTRY_PATH = (
 # If a DELIBERATE model change moves these, re-capture and update below.
 EXPECTED_SOBOL = {
     "ap1000_government": {
-        "WACC_government_pct": (0.6712, 0.6804),
-        "AP1000_CAPEX_usd_per_kW": (0.2699, 0.2792),
-        "capacity_factor_large_LWR_pct": (0.0241, 0.0241),
+        "WACC_government_pct": (0.6798, 0.6875),
+        "AP1000_CAPEX_usd_per_kW": (0.2539, 0.2613),
+        "AP1000_OM_usd_per_mwh": (0.0222, 0.0229),
     },
     "ap1000_commercial": {
-        "WACC_commercial_pct": (0.5770, 0.5872),
-        "AP1000_CAPEX_usd_per_kW": (0.3257, 0.3349),
-        "construction_years_AP1000": (0.0585, 0.0601),
+        "WACC_commercial_pct": (0.6152, 0.6230),
+        "AP1000_CAPEX_usd_per_kW": (0.3130, 0.3191),
+        "construction_years_AP1000": (0.0346, 0.0368),
     },
     "candu_ec6_government": {
-        "WACC_government_pct": (0.7640, 0.7746),
-        "CANDU_EC6_CAPEX_usd_per_kW": (0.1417, 0.1440),
-        "capacity_factor_CANDU_EC6_pct": (0.0608, 0.0606),
+        "WACC_government_pct": (0.7080, 0.7222),
+        "CANDU_EC6_CAPEX_usd_per_kW": (0.1361, 0.1385),
+        "capacity_factor_CANDU_EC6_pct": (0.0595, 0.0614),
     },
     "candu_ec6_commercial": {
-        "WACC_commercial_pct": (0.6651, 0.6805),
-        "CANDU_EC6_CAPEX_usd_per_kW": (0.1752, 0.1784),
-        "construction_years_CANDU_EC6": (0.0657, 0.0717),
+        "WACC_commercial_pct": (0.6213, 0.6437),
+        "CANDU_EC6_CAPEX_usd_per_kW": (0.1672, 0.1706),
+        "construction_years_CANDU_EC6": (0.0944, 0.1121),
+    },
+    "candu_ec6_seu_government": {
+        "WACC_government_pct": (0.7091, 0.7231),
+        "CANDU_EC6_CAPEX_usd_per_kW": (0.1330, 0.1370),
+        "capacity_factor_CANDU_EC6_pct": (0.0581, 0.0610),
+    },
+    "candu_ec6_seu_commercial": {
+        "WACC_commercial_pct": (0.6215, 0.6380),
+        "CANDU_EC6_CAPEX_usd_per_kW": (0.1634, 0.1677),
+        "construction_years_CANDU_EC6": (0.1028, 0.1071),
     },
 }
 

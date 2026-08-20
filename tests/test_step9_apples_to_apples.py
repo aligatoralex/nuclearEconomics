@@ -25,39 +25,43 @@ def _series(df, scenario, wacc_scenario):
     ].reset_index(drop=True)
 
 
-# Seed-pinned ground truth (F4). These numbers are captured from
+# Seed-pinned ground truth (P2, re-pinned after the B1-B5 critical-review
+# backlog landed). These numbers are captured from
 # run_apples_to_apples_lhs(registry, n_samples=1000, seed=42) against the
-# CURRENT registry + model (IDC wired in, CANDU-specific CAPEX/CF/decomm
-# params). The run is fully deterministic, so we can pin exact-ish values.
+# CURRENT registry + model: D2O annual makeup wired into CANDU OPEX (B2),
+# research-updated construction/CF/decomm ranges (B1), OPEX now a
+# per-technology sampled dimension instead of an identical flat 100M
+# placeholder (B3), lifetime_years/capacity_mw registry-sourced (B4). The
+# run is fully deterministic, so we can pin exact-ish values.
 #
 # Per (wacc_scenario): the AP1000 and CANDU EC6 median LCOE, and the
 # positionally-paired difference (candu - ap1000, common random numbers
 # within the wacc run) - its median and the probability CANDU is cheaper.
 #
 # TOLERANCES (chosen deliberately):
-#   * median LCOE       -> abs=0.5 USD/MWh. Medians sit at ~98-189, so 0.5
+#   * median LCOE       -> abs=0.5 USD/MWh. Medians sit at ~103-202, so 0.5
 #     is <0.5% - tight enough that un-wiring IDC (which moves medians by
 #     several USD/MWh) or changing a registry mid trips it, loose enough to
 #     absorb BLAS/lib float noise (which is < 1e-3 here).
 #   * paired diff median -> abs=0.5 USD/MWh, same reasoning; the gap itself
-#     is only ~2 USD/MWh so 0.5 still catches a real directional shift.
-#   * P(CANDU cheaper)  -> abs=0.02. It is a fraction of 1000 paired draws
-#     (~0.39-0.44); 0.02 = ~20 rows flipping, far above float noise but
-#     well below the change a real wiring bug would cause.
+#     is only ~3 USD/MWh so 0.5 still catches a real directional shift.
+#   * P(CANDU cheaper)  -> abs=0.02. It is a fraction of 1000 paired draws;
+#     0.02 = ~20 rows flipping, far above float noise but well below the
+#     change a real wiring bug would cause.
 # If a DELIBERATE model change moves these, re-capture and update the
 # numbers here - the test is meant to FAIL loudly on an unintended shift.
 EXPECTED = {
     "government": {
-        "ap1000_median": 98.3561,
-        "candu_median": 100.5221,
-        "diff_median": 2.0991,
-        "p_candu_cheaper": 0.3940,
+        "ap1000_median": 102.8256,
+        "candu_median": 105.5165,
+        "diff_median": 3.1982,
+        "p_candu_cheaper": 0.3620,
     },
     "commercial": {
-        "ap1000_median": 187.3903,
-        "candu_median": 189.3913,
-        "diff_median": 2.3103,
-        "p_candu_cheaper": 0.4440,
+        "ap1000_median": 201.8563,
+        "candu_median": 197.6668,
+        "diff_median": -2.8694,
+        "p_candu_cheaper": 0.5560,
     },
 }
 
@@ -71,22 +75,21 @@ def test_candu_median_lcoe_near_parity_within_plausible_band(apples_df):
 
         # AP1000 and CANDU sit at near-parity once CAPEX is genuinely
         # comparable (both Tier 2, similar order of magnitude - not the old
-        # ~2x-low CANDU placeholder from Kroki 6-8). Three effects now pull
+        # ~2x-low CANDU placeholder from Kroki 6-8). Several effects now pull
         # in competing directions: CANDU's cheaper fuel-cost structure and
-        # (since F1 wired interest-during-construction in) its shorter build
-        # (construction_years 5/6/8 vs AP1000 6/7/9, less accrued IDC) push
-        # CANDU DOWN, while F5 gave CANDU its own, honestly lower capacity
-        # factor (capacity_factor_CANDU_EC6_pct mid 87 vs the large_LWR mid
-        # 91 it used to borrow), which spreads CANDU's fixed CAPEX/decomm
-        # over fewer MWh and pushes CANDU UP. The CF penalty slightly
-        # outweighs the fuel+IDC edge, so CANDU now lands marginally ABOVE
-        # AP1000 rather than just below: median ratio ap1000/candu ~0.978
-        # (gov) / ~0.989 (commercial). The gap is tiny either way (fuel is a
-        # minor share of LCOE; WACC and CAPEX dominate per the Sobol
-        # analysis) - the point of this test is that the two technologies
-        # are within a few percent of each other. A ratio outside
-        # [0.95, 1.05] would mean the gap grew implausibly large in either
-        # direction (a CAPEX/IDC/CF wiring bug).
+        # its shorter construction range push CANDU DOWN, while its lower
+        # capacity factor (mid 87 vs AP1000's 91) and wider, research-backed
+        # decommissioning % (B1: 10/15/22 vs AP1000's 8/12/16) push CANDU UP.
+        # B1 also widened AP1000's construction-time range upward (realized
+        # builds run 8-10.5 years, not 6-9) - more accrued IDC pushes AP1000
+        # UP too. Net result flips sign by WACC scenario: median ratio
+        # ap1000/candu ~0.974 (gov, CANDU slightly pricier) / ~1.021
+        # (commercial, CANDU now slightly cheaper). The gap stays small
+        # either way (fuel/decomm/OPEX are minor shares of LCOE; WACC and
+        # CAPEX dominate per the Sobol analysis) - the point of this test is
+        # that the two technologies are within a few percent of each other.
+        # A ratio outside [0.95, 1.05] would mean the gap grew implausibly
+        # large in either direction (a CAPEX/IDC/CF/OPEX wiring bug).
         ratio = ap1000_median / candu_median
         assert 0.95 <= ratio <= 1.05, (
             wacc_scenario,
