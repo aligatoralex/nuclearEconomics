@@ -24,6 +24,8 @@ COLOR_NEUTRAL = "#6B7280"
 TIER_BADGE_COLORS = {1: "#2E9E5B", 2: COLOR_WARNING, 3: "#C0392B"}
 
 CANDU_CAPEX_PARAM = "CANDU_EC6_CAPEX_usd_per_kW"
+CONSTRUCTION_AP1000_PARAM = "construction_years_AP1000"
+CONSTRUCTION_CANDU_PARAM = "construction_years_CANDU_EC6"
 
 
 def _fig_to_inline_svg(fig: go.Figure, width: int, height: int) -> str:
@@ -106,6 +108,28 @@ def _load_sobol_rankings() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     dominant_factor = {"parameter": top_row["parameter"], "ST": float(top_row["ST"])}
 
     return ap1000_gov, candu_gov, dominant_factor
+
+
+def _load_construction_sensitivity(
+    ap1000_gov: pd.DataFrame, candu_gov: pd.DataFrame
+) -> dict:
+    """B6: construction_years_AP1000/CANDU_EC6 are Sobol/tornado dimensions
+    (their ranges were widened this session, R1: construction_times.md, to
+    match realized build durations rather than unachieved vendor NOAK
+    claims), but that only shows up buried in the full ranking chart/table.
+    Surface each technology's construction-time ST explicitly, read
+    straight from the same government-WACC Sobol CSVs the ranking chart
+    uses - not recomputed or hardcoded here.
+    """
+
+    def _st_for(df: pd.DataFrame, parameter: str) -> float | None:
+        row = df[df["parameter"] == parameter]
+        return float(row["ST"].iloc[0]) if not row.empty else None
+
+    return {
+        "ap1000_st": _st_for(ap1000_gov, CONSTRUCTION_AP1000_PARAM),
+        "candu_st": _st_for(candu_gov, CONSTRUCTION_CANDU_PARAM),
+    }
 
 
 def _build_kpi_cards(stats: dict, diff_stats: dict, dominant_factor: dict) -> str:
@@ -258,6 +282,7 @@ def build_dashboard_html() -> str:
     stats = _load_apples_to_apples_stats()
     diff_stats = _load_paired_diff_stats()
     ap1000_gov, candu_gov, dominant_factor = _load_sobol_rankings()
+    construction_sensitivity = _load_construction_sensitivity(ap1000_gov, candu_gov)
 
     kpi_html = _build_kpi_cards(stats, diff_stats, dominant_factor)
     ranking_svg = _build_ranking_svg(ap1000_gov, candu_gov)
@@ -337,6 +362,10 @@ def build_dashboard_html() -> str:
   .chart-panel svg {{ width: 100%; height: auto; max-height: 100%; }}
   .chart-svg-wrap {{ flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }}
   .chart-source {{ font-size: 0.65rem; color: var(--color-neutral); padding: 2px 8px; }}
+  .construction-note {{
+    color: var(--color-warning); font-weight: 600; border-top: 1px dashed var(--border-color-soft);
+    margin-top: 2px; padding-top: 3px;
+  }}
   .table-panel {{
     background: var(--card-bg); color: #1a1a1a; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     padding: 8px 14px; display: flex; flex-direction: column; min-height: 0;
@@ -374,6 +403,7 @@ def build_dashboard_html() -> str:
     <div class="chart-panel">
       <div class="chart-svg-wrap">{ranking_svg}</div>
       <div class="chart-source">Zrodlo: data/output/step9c_tornado_sobol_updated/sobol_*.csv (Krok 9c, {generated_at})</div>
+      <div class="chart-source construction-note">B6 &mdash; czas budowy jako czynnik niepewnosci (zakresy poszerzone wg realnych czasow budowy, patrz docs/research/construction_times.md): Sobol ST(AP1000)={construction_sensitivity["ap1000_st"]:.3f}, ST(CANDU EC6)={construction_sensitivity["candu_st"]:.3f} (WACC rzadowy)</div>
     </div>
     <div class="chart-panel">
       <div class="chart-svg-wrap">{boxplot_svg}</div>
