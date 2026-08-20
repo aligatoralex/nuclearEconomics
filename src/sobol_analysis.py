@@ -15,9 +15,11 @@ from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 from src.tornado_analysis import (
     AP1000_CAPEX_PARAM,
+    AP1000_OPEX_PARAM,
     CANDU_CAPACITY_FACTOR_PARAM,
     CANDU_CAPEX_PARAM,
     CANDU_DECOMM_PARAM,
+    CANDU_OPEX_PARAM,
     CANDU_PWR_RATIO_PARAM,
     CAPACITY_FACTOR_PARAM,
     CONSTRUCTION_AP1000_PARAM,
@@ -51,6 +53,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
             CAPACITY_FACTOR_PARAM,
             FUEL_PARAM,
             AP1000_CAPEX_PARAM,
+            AP1000_OPEX_PARAM,
             CONSTRUCTION_AP1000_PARAM,
         ]
     names = [
@@ -62,6 +65,7 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
         CANDU_CAPEX_PARAM,
+        CANDU_OPEX_PARAM,
         CONSTRUCTION_CANDU_PARAM,
     ]
     # B5: CANDU-SEU adds the SEU-vs-natural fuel-cycle cost reduction as a
@@ -84,14 +88,20 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     d2o_add_on = values.get(D2O_CAPEX_PARAM, 0.0)
     capex_usd = base_capex_usd + d2o_add_on
 
-    # D2O annual makeup losses (CANDU only) add to OPEX.
-    opex_usd_per_year = base_scenario.opex_usd_per_year + values.get(D2O_OPEX_PARAM, 0.0)
-
     # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
     # the IDC-inflated capital booked at t=0.
     decomm_usd = capex_usd * values[base_scenario.decomm_parameter_name] / 100
     capacity_factor = values[base_scenario.capacity_factor_parameter_name] / 100
     wacc = values[base_scenario.wacc_parameter_name] / 100
+
+    # OPEX (B3): OM_usd_per_mwh * capacity_mw * 8760 * capacity_factor, so it
+    # co-varies with whichever capacity_factor draw is in this row. D2O
+    # annual makeup losses (CANDU only) add on top.
+    om_per_mwh = values[base_scenario.opex_per_mwh_parameter_name]
+    base_opex_usd_per_year = (
+        om_per_mwh * base_scenario.capacity_mw * 8760 * capacity_factor
+    )
+    opex_usd_per_year = base_opex_usd_per_year + values.get(D2O_OPEX_PARAM, 0.0)
 
     # Interest during construction on the real physical expenditure (overnight
     # capex incl. D2O), booked into capital at t=0.
