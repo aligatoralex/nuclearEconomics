@@ -28,6 +28,10 @@ CONSTRUCTION_CANDU_PARAM = "construction_years_CANDU_EC6"
 SEU_REDUCTION_PARAM = "fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural"
 AP1000_OPEX_PARAM = "AP1000_OM_usd_per_mwh"
 CANDU_OPEX_PARAM = "CANDU_EC6_OM_usd_per_mwh"
+LIFETIME_AP1000_PARAM = "lifetime_years_AP1000"
+LIFETIME_CANDU_PARAM = "lifetime_years_CANDU_EC6"
+CAPACITY_MW_AP1000_PARAM = "capacity_mw_AP1000"
+CAPACITY_MW_CANDU_PARAM = "capacity_mw_CANDU_EC6"
 
 
 @dataclass
@@ -44,8 +48,12 @@ class BaseScenario:
     (B3: was a flat opex_usd_per_year=100M placeholder identical for both
     technologies, now a per-technology registry-sourced OAT/Sobol
     dimension that co-varies correctly with whichever capacity_factor is
-    in effect). lifetime_years isn't covered by the registry yet and
-    stays a fixed placeholder - not tier-sourced data.
+    in effect). lifetime_years and capacity_mw are now also registry-
+    sourced (B4: lifetime_years_AP1000/CANDU_EC6,
+    capacity_mw_AP1000/CANDU_EC6) but as degenerate (min=mid=max) point
+    facts rather than sampled dimensions - they're plant specs/regulatory
+    terms, not economic uncertainty ranges, so they aren't added to
+    applicable_parameter_names or build_sobol_parameter_names.
     """
 
     name: str
@@ -70,10 +78,17 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
     CANDU_EC6_CAPEX_usd_per_kW (Krok 9a/9b) instead of the Krok 6 flat
     placeholders (15.525B/5B) - both are now real, comparable Tier 2
     figures (EJ1 Westinghouse offer vs EJ2 AtkinsRealis Feb 2026 offer).
-    OPEX/lifetime/capacity_mw still aren't covered by the registry and
-    stay as constants here (same figures as Krok 6/7b).
     """
     registry_by_name = {e.parameter: e for e in registry}
+    ap1000_capacity_mw = registry_by_name[CAPACITY_MW_AP1000_PARAM].value_or_range.mid
+    candu_capacity_mw = registry_by_name[CAPACITY_MW_CANDU_PARAM].value_or_range.mid
+    ap1000_lifetime_years = int(
+        registry_by_name[LIFETIME_AP1000_PARAM].value_or_range.mid
+    )
+    candu_lifetime_years = int(
+        registry_by_name[LIFETIME_CANDU_PARAM].value_or_range.mid
+    )
+
     ap1000_capacity_factor = (
         registry_by_name[CAPACITY_FACTOR_PARAM].value_or_range.mid / 100
     )
@@ -83,7 +98,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
 
     ap1000_fuel_usd_per_mwh = registry_by_name[FUEL_PARAM].value_or_range.mid
     ap1000_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
-        capacity_mw=1150.0,
+        capacity_mw=ap1000_capacity_mw,
         capacity_factor=ap1000_capacity_factor,
         base_fuel_usd_per_mwh=ap1000_fuel_usd_per_mwh,
     )
@@ -93,7 +108,7 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
         ap1000_fuel_usd_per_mwh, candu_ratio
     )
     candu_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
-        capacity_mw=1000.0,
+        capacity_mw=candu_capacity_mw,
         capacity_factor=candu_capacity_factor,
         base_fuel_usd_per_mwh=candu_fuel_usd_per_mwh,
     )
@@ -105,12 +120,11 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
         candu_fuel_usd_per_mwh, seu_reduction_pct
     )
     candu_seu_fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
-        capacity_mw=1000.0,
+        capacity_mw=candu_capacity_mw,
         capacity_factor=candu_capacity_factor,
         base_fuel_usd_per_mwh=candu_seu_fuel_usd_per_mwh_value,
     )
 
-    common = {"lifetime_years": 60}
     ap1000_applicable = {
         "WACC_government_pct": [
             "WACC_government_pct",
@@ -162,26 +176,26 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             capex_per_kw_parameter_name=AP1000_CAPEX_PARAM,
             fuel_usd_per_year=ap1000_fuel_usd_per_year,
             opex_per_mwh_parameter_name=AP1000_OPEX_PARAM,
-            capacity_mw=1150.0,
+            capacity_mw=ap1000_capacity_mw,
+            lifetime_years=ap1000_lifetime_years,
             wacc_parameter_name=wacc_param,
             construction_years_parameter_name=CONSTRUCTION_AP1000_PARAM,
             capacity_factor_parameter_name=CAPACITY_FACTOR_PARAM,
             decomm_parameter_name=DECOMM_PARAM,
             applicable_parameter_names=ap1000_applicable[wacc_param],
-            **common,
         )
         scenarios[f"candu_ec6_{wacc_kind}"] = BaseScenario(
             name="candu_ec6",
             capex_per_kw_parameter_name=CANDU_CAPEX_PARAM,
             fuel_usd_per_year=candu_fuel_usd_per_year,
             opex_per_mwh_parameter_name=CANDU_OPEX_PARAM,
-            capacity_mw=1000.0,
+            capacity_mw=candu_capacity_mw,
+            lifetime_years=candu_lifetime_years,
             wacc_parameter_name=wacc_param,
             construction_years_parameter_name=CONSTRUCTION_CANDU_PARAM,
             capacity_factor_parameter_name=CANDU_CAPACITY_FACTOR_PARAM,
             decomm_parameter_name=CANDU_DECOMM_PARAM,
             applicable_parameter_names=candu_applicable[wacc_param],
-            **common,
         )
         # B5: same physical plant as candu_ec6, cheaper (SEU) fuel cycle.
         # OAT tornado deliberately excludes fuel-cost parameters for every
@@ -192,14 +206,14 @@ def build_base_scenarios(registry: list[AssumptionEntry]) -> dict[str, BaseScena
             capex_per_kw_parameter_name=CANDU_CAPEX_PARAM,
             fuel_usd_per_year=candu_seu_fuel_usd_per_year,
             opex_per_mwh_parameter_name=CANDU_OPEX_PARAM,
-            capacity_mw=1000.0,
+            capacity_mw=candu_capacity_mw,
+            lifetime_years=candu_lifetime_years,
             wacc_parameter_name=wacc_param,
             construction_years_parameter_name=CONSTRUCTION_CANDU_PARAM,
             capacity_factor_parameter_name=CANDU_CAPACITY_FACTOR_PARAM,
             decomm_parameter_name=CANDU_DECOMM_PARAM,
             applicable_parameter_names=candu_applicable[wacc_param],
             is_seu=True,
-            **common,
         )
     return scenarios
 
