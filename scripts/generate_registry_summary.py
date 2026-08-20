@@ -7,9 +7,23 @@ REGISTRY_PATH = REPO_ROOT / "config" / "assumptions_registry.json"
 OUTPUT_PATH = REPO_ROOT / "docs" / "registry_summary.md"
 
 
+def _table(entries: list) -> list[str]:
+    rows = [
+        "| Parameter | Mid | Tier | Requires confirmation |",
+        "| --- | --- | --- | --- |",
+    ]
+    for entry in sorted(entries, key=lambda e: e.tier, reverse=True):
+        rows.append(
+            f"| {entry.parameter} | {entry.value_or_range.mid} | {entry.tier} | "
+            f"{entry.requires_confirmation} |"
+        )
+    return rows
+
+
 def main() -> None:
     entries = load_assumptions_registry(REGISTRY_PATH)
-    entries_sorted = sorted(entries, key=lambda e: e.tier, reverse=True)
+    in_scope = [e for e in entries if e.used_in_lcoe_comparison]
+    out_of_scope = [e for e in entries if not e.used_in_lcoe_comparison]
 
     lines = [
         "# Assumptions registry summary",
@@ -20,17 +34,36 @@ def main() -> None:
             "regenerate instead so this stays in sync with the registry."
         ),
         "",
-        "Sorted by tier descending (least certain first).",
+        (
+            f"{len(entries)} parameters total; {len(in_scope)} drive the "
+            f"AP1000-vs-CANDU LCOE, {len(out_of_scope)} are a future BWRX-300 SMR "
+            "track not consumed by any analysis module."
+        ),
         "",
-        "| Parameter | Mid | Tier | Requires confirmation |",
-        "| --- | --- | --- | --- |",
+        (
+            "Note on in-scope provenance: `D2O_price_usd_per_kg`, "
+            "`D2O_inventory_tonnes_per_1000MWe_EC6` and "
+            "`D2O_annual_makeup_losses_tonnes_per_year` are not sampled directly at "
+            "runtime but are the provenance of the in-scope "
+            "`D2O_total_upfront_capex_usd_per_1000MWe` and "
+            "`D2O_annual_makeup_opex_usd_per_year` (the latter wires the D2O annual "
+            "makeup cost into CANDU OPEX, B2). "
+            "`fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural` drives the "
+            "reactivated CANDU-SEU comparison variant (B5) - see "
+            "src/tornado_analysis.py's candu_ec6_seu scenarios."
+        ),
+        "",
+        "Each table is sorted by tier descending (least certain first).",
+        "",
+        "## In-scope parameters (drive AP1000-vs-CANDU LCOE)",
+        "",
+        *_table(in_scope),
+        "",
+        "## Unused / future SMR track (BWRX-300, not consumed by any analysis)",
+        "",
+        *_table(out_of_scope),
+        "",
     ]
-    for entry in entries_sorted:
-        lines.append(
-            f"| {entry.parameter} | {entry.value_or_range.mid} | {entry.tier} | "
-            f"{entry.requires_confirmation} |"
-        )
-    lines.append("")
 
     OUTPUT_PATH.write_text("\n".join(lines))
     print(f"Wrote {OUTPUT_PATH}")

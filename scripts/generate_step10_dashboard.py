@@ -24,6 +24,8 @@ COLOR_NEUTRAL = "#6B7280"
 TIER_BADGE_COLORS = {1: "#2E9E5B", 2: COLOR_WARNING, 3: "#C0392B"}
 
 CANDU_CAPEX_PARAM = "CANDU_EC6_CAPEX_usd_per_kW"
+CONSTRUCTION_AP1000_PARAM = "construction_years_AP1000"
+CONSTRUCTION_CANDU_PARAM = "construction_years_CANDU_EC6"
 
 
 def _fig_to_inline_svg(fig: go.Figure, width: int, height: int) -> str:
@@ -49,9 +51,9 @@ def _load_apples_to_apples_stats() -> dict:
     stats = {}
     for scenario in ("ap1000", "candu_ec6"):
         for wacc_scenario in ("government", "commercial"):
-            subset = df[(df["scenario"] == scenario) & (df["wacc_scenario"] == wacc_scenario)][
-                "lcoe_usd_mwh"
-            ]
+            subset = df[
+                (df["scenario"] == scenario) & (df["wacc_scenario"] == wacc_scenario)
+            ]["lcoe_usd_mwh"]
             stats[f"{scenario}_{wacc_scenario}"] = {
                 "p10": subset.quantile(0.10),
                 "mid": subset.median(),
@@ -60,9 +62,39 @@ def _load_apples_to_apples_stats() -> dict:
     return stats
 
 
+def _load_paired_diff_stats() -> dict:
+    """For each WACC scenario, compute the POSITIONALLY-paired difference
+    series diff_i = candu_lcoe_i - ap1000_lcoe_i. Within a wacc_scenario the
+    two technologies were sampled from shared random draws in generation
+    order, so row index i pairs the same underlying draw across technologies.
+    Returns median / P10 / P90 of the paired diff plus P(CANDU cheaper).
+    """
+    df = pd.read_csv(DATA_DIR / "step9_apples_to_apples_lcoe.csv")
+    stats = {}
+    for wacc_scenario in ("government", "commercial"):
+        ap1000 = df[
+            (df["scenario"] == "ap1000") & (df["wacc_scenario"] == wacc_scenario)
+        ]["lcoe_usd_mwh"].reset_index(drop=True)
+        candu = df[
+            (df["scenario"] == "candu_ec6") & (df["wacc_scenario"] == wacc_scenario)
+        ]["lcoe_usd_mwh"].reset_index(drop=True)
+        diff = candu - ap1000
+        stats[wacc_scenario] = {
+            "median": diff.median(),
+            "p10": diff.quantile(0.10),
+            "p90": diff.quantile(0.90),
+            "p_candu_cheaper": float((diff < 0).mean()),
+        }
+    return stats
+
+
 def _load_sobol_rankings() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    ap1000_df = pd.read_csv(DATA_DIR / "step9c_tornado_sobol_updated" / "sobol_ap1000.csv")
-    candu_df = pd.read_csv(DATA_DIR / "step9c_tornado_sobol_updated" / "sobol_candu_ec6.csv")
+    ap1000_df = pd.read_csv(
+        DATA_DIR / "step9c_tornado_sobol_updated" / "sobol_ap1000.csv"
+    )
+    candu_df = pd.read_csv(
+        DATA_DIR / "step9c_tornado_sobol_updated" / "sobol_candu_ec6.csv"
+    )
 
     ap1000_gov = ap1000_df[ap1000_df["wacc_scenario"] == "government"].sort_values(
         "ST", ascending=False
@@ -78,26 +110,54 @@ def _load_sobol_rankings() -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     return ap1000_gov, candu_gov, dominant_factor
 
 
-def _build_kpi_cards(stats: dict, dominant_factor: dict) -> str:
-    ap1000 = stats["ap1000_government"]
-    candu = stats["candu_ec6_government"]
-    diff_pct = (candu["mid"] - ap1000["mid"]) / ap1000["mid"] * 100
+def _load_construction_sensitivity(
+    ap1000_gov: pd.DataFrame, candu_gov: pd.DataFrame
+) -> dict:
+    """B6: construction_years_AP1000/CANDU_EC6 are Sobol/tornado dimensions
+    (their ranges were widened this session, R1: construction_times.md, to
+    match realized build durations rather than unachieved vendor NOAK
+    claims), but that only shows up buried in the full ranking chart/table.
+    Surface each technology's construction-time ST explicitly, read
+    straight from the same government-WACC Sobol CSVs the ranking chart
+    uses - not recomputed or hardcoded here.
+    """
+
+    def _st_for(df: pd.DataFrame, parameter: str) -> float | None:
+        row = df[df["parameter"] == parameter]
+        return float(row["ST"].iloc[0]) if not row.empty else None
+
+    return {
+        "ap1000_st": _st_for(ap1000_gov, CONSTRUCTION_AP1000_PARAM),
+        "candu_st": _st_for(candu_gov, CONSTRUCTION_CANDU_PARAM),
+    }
+
+
+def _build_kpi_cards(stats: dict, diff_stats: dict, dominant_factor: dict) -> str:
+    ap_gov = stats["ap1000_government"]
+    ap_com = stats["ap1000_commercial"]
+    candu_gov = stats["candu_ec6_government"]
+    candu_com = stats["candu_ec6_commercial"]
+    d_gov = diff_stats["government"]
+    d_com = diff_stats["commercial"]
 
     return f"""
     <div class="kpi-card" style="border-top-color:{COLOR_AP1000}">
-      <div class="kpi-label">AP1000 LCOE (WACC rzadowy)</div>
-      <div class="kpi-value">{ap1000["mid"]:.1f} <span class="kpi-unit">USD/MWh</span></div>
-      <div class="kpi-sub">P10-P90: {ap1000["p10"]:.0f} - {ap1000["p90"]:.0f}</div>
+      <div class="kpi-label">AP1000 LCOE</div>
+      <div class="kpi-value">{ap_gov["mid"]:.0f} <span class="kpi-unit">USD/MWh &middot; rzad</span></div>
+      <div class="kpi-sub">P10-P90: {ap_gov["p10"]:.0f} - {ap_gov["p90"]:.0f}</div>
+      <div class="kpi-sub">komercja: {ap_com["mid"]:.0f} (P10-P90: {ap_com["p10"]:.0f} - {ap_com["p90"]:.0f})</div>
     </div>
     <div class="kpi-card" style="border-top-color:{COLOR_CANDU}">
-      <div class="kpi-label">CANDU EC6 LCOE (WACC rzadowy)</div>
-      <div class="kpi-value">{candu["mid"]:.1f} <span class="kpi-unit">USD/MWh</span></div>
-      <div class="kpi-sub">P10-P90: {candu["p10"]:.0f} - {candu["p90"]:.0f}</div>
+      <div class="kpi-label">CANDU EC6 LCOE</div>
+      <div class="kpi-value">{candu_gov["mid"]:.0f} <span class="kpi-unit">USD/MWh &middot; rzad</span></div>
+      <div class="kpi-sub">P10-P90: {candu_gov["p10"]:.0f} - {candu_gov["p90"]:.0f}</div>
+      <div class="kpi-sub">komercja: {candu_com["mid"]:.0f} (P10-P90: {candu_com["p10"]:.0f} - {candu_com["p90"]:.0f})</div>
     </div>
     <div class="kpi-card" style="border-top-color:{COLOR_NEUTRAL}">
-      <div class="kpi-label">Roznica CANDU vs AP1000</div>
-      <div class="kpi-value">{diff_pct:+.1f}<span class="kpi-unit">%</span></div>
-      <div class="kpi-sub">Marginalna przy porownywalnym CAPEX - Krok 9b</div>
+      <div class="kpi-label">Roznica CANDU &minus; AP1000 (sparowana)</div>
+      <div class="kpi-value" style="font-size:1.35rem">Nierozroznialne w granicach niepewnosci</div>
+      <div class="kpi-sub">rzad: {d_gov["median"]:+.0f} USD/MWh (P10-P90: {d_gov["p10"]:+.0f} do {d_gov["p90"]:+.0f}), P(CANDU tanszy)={d_gov["p_candu_cheaper"]:.2f}</div>
+      <div class="kpi-sub">komercja: {d_com["median"]:+.0f} USD/MWh (P10-P90: {d_com["p10"]:+.0f} do {d_com["p90"]:+.0f}), P(CANDU tanszy)={d_com["p_candu_cheaper"]:.2f}</div>
     </div>
     <div class="kpi-card" style="border-top-color:{COLOR_WARNING}">
       <div class="kpi-label">Dominujacy czynnik niepewnosci</div>
@@ -185,7 +245,9 @@ def _build_registry_table_rows(registry) -> str:
         badge_color = TIER_BADGE_COLORS[entry.tier]
         confirmation_icon = "&#9888;" if entry.requires_confirmation else "&#10003;"
         confirmation_title = (
-            "Wymaga potwierdzenia" if entry.requires_confirmation else "Potwierdzone / silne zrodlo"
+            "Wymaga potwierdzenia"
+            if entry.requires_confirmation
+            else "Potwierdzone / silne zrodlo"
         )
         source_escaped = html.escape(entry.source)
         extra_badge = ""
@@ -214,11 +276,15 @@ def _build_registry_table_rows(registry) -> str:
 
 
 def build_dashboard_html() -> str:
-    registry = load_assumptions_registry(REPO_ROOT / "config" / "assumptions_registry.json")
+    registry = load_assumptions_registry(
+        REPO_ROOT / "config" / "assumptions_registry.json"
+    )
     stats = _load_apples_to_apples_stats()
+    diff_stats = _load_paired_diff_stats()
     ap1000_gov, candu_gov, dominant_factor = _load_sobol_rankings()
+    construction_sensitivity = _load_construction_sensitivity(ap1000_gov, candu_gov)
 
-    kpi_html = _build_kpi_cards(stats, dominant_factor)
+    kpi_html = _build_kpi_cards(stats, diff_stats, dominant_factor)
     ranking_svg = _build_ranking_svg(ap1000_gov, candu_gov)
     boxplot_svg = _build_boxplot_svg()
     table_rows_html = _build_registry_table_rows(registry)
@@ -296,6 +362,10 @@ def build_dashboard_html() -> str:
   .chart-panel svg {{ width: 100%; height: auto; max-height: 100%; }}
   .chart-svg-wrap {{ flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }}
   .chart-source {{ font-size: 0.65rem; color: var(--color-neutral); padding: 2px 8px; }}
+  .construction-note {{
+    color: var(--color-warning); font-weight: 600; border-top: 1px dashed var(--border-color-soft);
+    margin-top: 2px; padding-top: 3px;
+  }}
   .table-panel {{
     background: var(--card-bg); color: #1a1a1a; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     padding: 8px 14px; display: flex; flex-direction: column; min-height: 0;
@@ -333,6 +403,7 @@ def build_dashboard_html() -> str:
     <div class="chart-panel">
       <div class="chart-svg-wrap">{ranking_svg}</div>
       <div class="chart-source">Zrodlo: data/output/step9c_tornado_sobol_updated/sobol_*.csv (Krok 9c, {generated_at})</div>
+      <div class="chart-source construction-note">B6 &mdash; czas budowy jako czynnik niepewnosci (zakresy poszerzone wg realnych czasow budowy, patrz docs/research/construction_times.md): Sobol ST(AP1000)={construction_sensitivity["ap1000_st"]:.3f}, ST(CANDU EC6)={construction_sensitivity["candu_st"]:.3f} (WACC rzadowy)</div>
     </div>
     <div class="chart-panel">
       <div class="chart-svg-wrap">{boxplot_svg}</div>

@@ -1,3 +1,7 @@
+# NOTE: This plots the FROZEN pre-CAPEX Krok 7/8 baseline (the "before" side of
+# the old-vs-new comparison), read from data/output/step7_8_pre_capex_baseline/.
+# It is NOT current model output - do not mistake these bars for the live
+# CAPEX-inclusive rankings.
 from pathlib import Path
 
 import kaleido
@@ -7,6 +11,7 @@ from plotly.subplots import make_subplots
 
 CHROMIUM_PATH = "/opt/pw-browsers/chromium"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "output"
+BASELINE_DIR = DATA_DIR / "step7_8_pre_capex_baseline"
 
 TIER_COLORS = {1: "#9e9e9e", 2: "#f2c744", 3: "#e05a47"}
 S1_COLOR = "#c9d6e3"  # neutral reference shade, not tier-coded (S1 is a reference value, not the headline metric)
@@ -53,10 +58,22 @@ def make_sobol_figure(df: pd.DataFrame, title: str) -> go.Figure:
     # traced series, so they don't auto-legend).
     for tier, color in TIER_COLORS.items():
         fig.add_trace(
-            go.Bar(x=[None], y=[None], marker_color=color, name=f"ST, Tier {tier}", showlegend=True)
+            go.Bar(
+                x=[None],
+                y=[None],
+                marker_color=color,
+                name=f"ST, Tier {tier}",
+                showlegend=True,
+            )
         )
     fig.add_trace(
-        go.Bar(x=[None], y=[None], marker_color=S1_COLOR, name="S1 (main effect)", showlegend=True)
+        go.Bar(
+            x=[None],
+            y=[None],
+            marker_color=S1_COLOR,
+            name="S1 (main effect)",
+            showlegend=True,
+        )
     )
 
     fig.update_layout(
@@ -75,7 +92,7 @@ def main() -> None:
         ("candu_ec6", "CANDU EC6"),
     ]
     for tech_key, tech_label in technologies:
-        df = pd.read_csv(DATA_DIR / f"step8_sobol_{tech_key}.csv")
+        df = pd.read_csv(BASELINE_DIR / f"step8_sobol_{tech_key}.csv")
         fig = make_sobol_figure(
             df, f"Krok 8: Sobol S1 vs ST - {tech_label} (colored by tier, illustrative)"
         )

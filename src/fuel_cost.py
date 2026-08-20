@@ -18,3 +18,19 @@ def candu_natural_fuel_usd_per_mwh(
     AssumptionEntry schema.
     """
     return ap1000_fuel_usd_per_mwh / candu_vs_pwr_fuel_cost_ratio
+
+
+def candu_seu_fuel_usd_per_mwh(
+    candu_natural_fuel_usd_per_mwh_value: float,
+    fuel_cycle_cost_reduction_pct_seu_vs_natural: float,
+) -> float:
+    """CANDU slightly-enriched-uranium (SEU) fuel cost per MWh, derived from
+    the natural-uranium CANDU fuel cost reduced by the SEU fuel-cycle cost
+    saving (fuel_cycle_cost_reduction_pct_CANDU_SEU_vs_natural, Tier 1).
+    Same physical plant/CAPEX/OPEX/decomm as CANDU-natural - only the fuel
+    cycle differs (B5: reactivating the Krok 6 SEU variant on top of the
+    current, CAPEX-comparable model).
+    """
+    return candu_natural_fuel_usd_per_mwh_value * (
+        1 - fuel_cycle_cost_reduction_pct_seu_vs_natural / 100
+    )

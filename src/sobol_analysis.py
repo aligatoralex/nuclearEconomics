@@ -8,17 +8,27 @@ from SALib.sample import sobol as sobol_sample
 from src.fuel_cost import (
     calculate_fuel_cost_usd_per_year,
     candu_natural_fuel_usd_per_mwh,
+    candu_seu_fuel_usd_per_mwh,
 )
+from src.idc_engine import calculate_idc
 from src.lcoe_core import calculate_lcoe
 from src.schemas import AssumptionEntry
 from src.tornado_analysis import (
     AP1000_CAPEX_PARAM,
+    AP1000_OPEX_PARAM,
+    CANDU_CAPACITY_FACTOR_PARAM,
     CANDU_CAPEX_PARAM,
+    CANDU_DECOMM_PARAM,
+    CANDU_OPEX_PARAM,
     CANDU_PWR_RATIO_PARAM,
     CAPACITY_FACTOR_PARAM,
+    CONSTRUCTION_AP1000_PARAM,
+    CONSTRUCTION_CANDU_PARAM,
     D2O_CAPEX_PARAM,
+    D2O_OPEX_PARAM,
     DECOMM_PARAM,
     FUEL_PARAM,
+    SEU_REDUCTION_PARAM,
     BaseScenario,
 )
 
@@ -37,16 +47,32 @@ def build_sobol_parameter_names(scenario_key: str) -> list[str]:
         "WACC_government_pct" if "government" in scenario_key else "WACC_commercial_pct"
     )
     if scenario_key.startswith("ap1000"):
-        return [wacc_param, DECOMM_PARAM, CAPACITY_FACTOR_PARAM, FUEL_PARAM, AP1000_CAPEX_PARAM]
-    return [
+        return [
+            wacc_param,
+            DECOMM_PARAM,
+            CAPACITY_FACTOR_PARAM,
+            FUEL_PARAM,
+            AP1000_CAPEX_PARAM,
+            AP1000_OPEX_PARAM,
+            CONSTRUCTION_AP1000_PARAM,
+        ]
+    names = [
         wacc_param,
-        DECOMM_PARAM,
-        CAPACITY_FACTOR_PARAM,
+        CANDU_DECOMM_PARAM,
+        CANDU_CAPACITY_FACTOR_PARAM,
         D2O_CAPEX_PARAM,
+        D2O_OPEX_PARAM,
         FUEL_PARAM,
         CANDU_PWR_RATIO_PARAM,
         CANDU_CAPEX_PARAM,
+        CANDU_OPEX_PARAM,
+        CONSTRUCTION_CANDU_PARAM,
     ]
+    # B5: CANDU-SEU adds the SEU-vs-natural fuel-cycle cost reduction as a
+    # further sampled dimension on top of the CANDU-natural parameter set.
+    if scenario_key.startswith("candu_ec6_seu"):
+        names.append(SEU_REDUCTION_PARAM)
+    return names
 
 
 def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> float:
@@ -62,14 +88,36 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     d2o_add_on = values.get(D2O_CAPEX_PARAM, 0.0)
     capex_usd = base_capex_usd + d2o_add_on
 
-    decomm_usd = capex_usd * values[DECOMM_PARAM] / 100
-    capacity_factor = values[CAPACITY_FACTOR_PARAM] / 100
+    # Decommissioning stays a % of the OVERNIGHT capex (base + D2O), not of
+    # the IDC-inflated capital booked at t=0.
+    decomm_usd = capex_usd * values[base_scenario.decomm_parameter_name] / 100
+    capacity_factor = values[base_scenario.capacity_factor_parameter_name] / 100
     wacc = values[base_scenario.wacc_parameter_name] / 100
+
+    # OPEX (B3): OM_usd_per_mwh * capacity_mw * 8760 * capacity_factor, so it
+    # co-varies with whichever capacity_factor draw is in this row. D2O
+    # annual makeup losses (CANDU only) add on top.
+    om_per_mwh = values[base_scenario.opex_per_mwh_parameter_name]
+    base_opex_usd_per_year = (
+        om_per_mwh * base_scenario.capacity_mw * 8760 * capacity_factor
+    )
+    opex_usd_per_year = base_opex_usd_per_year + values.get(D2O_OPEX_PARAM, 0.0)
+
+    # Interest during construction on the real physical expenditure (overnight
+    # capex incl. D2O), booked into capital at t=0.
+    construction_years_value = values[base_scenario.construction_years_parameter_name]
+    cy = max(1, round(float(construction_years_value)))
+    idc = calculate_idc(capex_usd, cy, wacc)
+    capex_effective = capex_usd + idc
 
     if CANDU_PWR_RATIO_PARAM in values:
         fuel_usd_per_mwh = candu_natural_fuel_usd_per_mwh(
             values[FUEL_PARAM], values[CANDU_PWR_RATIO_PARAM]
         )
+        if SEU_REDUCTION_PARAM in values:
+            fuel_usd_per_mwh = candu_seu_fuel_usd_per_mwh(
+                fuel_usd_per_mwh, values[SEU_REDUCTION_PARAM]
+            )
     else:
         fuel_usd_per_mwh = values[FUEL_PARAM]
     fuel_usd_per_year = calculate_fuel_cost_usd_per_year(
@@ -77,8 +125,8 @@ def lcoe_from_values(base_scenario: BaseScenario, values: dict[str, float]) -> f
     )
 
     return calculate_lcoe(
-        capex_usd=capex_usd,
-        opex_usd_per_year=base_scenario.opex_usd_per_year,
+        capex_usd=capex_effective,
+        opex_usd_per_year=opex_usd_per_year,
         fuel_usd_per_year=fuel_usd_per_year,
         decomm_usd=decomm_usd,
         wacc=wacc,
@@ -168,7 +216,7 @@ if __name__ == "__main__":
     )
     scenarios = build_base_scenarios(registry)
 
-    for tech_name in ("ap1000", "candu_ec6"):
+    for tech_name in ("ap1000", "candu_ec6", "candu_ec6_seu"):
         main_frames = []
         interaction_frames = []
         for wacc_kind in ("government", "commercial"):
@@ -182,14 +230,22 @@ if __name__ == "__main__":
             main_frames.append(main_effects)
             interaction_frames.append(interactions)
 
+        # Standalone re-run output goes to distinct *_current_* paths so it
+        # cannot clobber the frozen pre-CAPEX baseline in
+        # data/output/step7_8_pre_capex_baseline/.
         main_combined = pd.concat(main_frames, ignore_index=True)
-        main_path = repo_root / "data" / "output" / f"step8_sobol_{tech_name}.csv"
+        main_path = (
+            repo_root / "data" / "output" / f"step8_sobol_current_{tech_name}.csv"
+        )
         main_combined.to_csv(main_path, index=False)
         print(f"Wrote {len(main_combined)} rows to {main_path}")
 
         interactions_combined = pd.concat(interaction_frames, ignore_index=True)
         interactions_path = (
-            repo_root / "data" / "output" / f"step8_sobol_interactions_{tech_name}.csv"
+            repo_root
+            / "data"
+            / "output"
+            / f"step8_sobol_interactions_current_{tech_name}.csv"
         )
         interactions_combined.to_csv(interactions_path, index=False)
         print(f"Wrote {len(interactions_combined)} rows to {interactions_path}")

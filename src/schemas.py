@@ -21,6 +21,7 @@ class AssumptionEntry(BaseModel):
     date_retrieved: date
     rationale: str
     requires_confirmation: bool
+    used_in_lcoe_comparison: bool = True
 
     @model_validator(mode="after")
     def tier3_requires_confirmation(self) -> "AssumptionEntry":
