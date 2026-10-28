@@ -43,3 +43,10 @@ Do modelowania takiego rdzenia pasują kody z notatki
 
 ## Wskazówki
 - Zad. 2: Pu-240 jest materiałem żyznym, a Pu-242 pochłania neutrony — skutek zależy od bilansu.
+
+## Demo kodu SCONE
+Uruchamialny przykład w [`examples/scone_demo`](../../../examples/scone_demo/README.md)
+(`./run_demo.sh`) pokazuje przebieg obliczenia własnego (eigenvalue) Monte Carlo:
+cykle nieaktywne i aktywne, k-eff z niepewnością. To **zabawkowa**
+biblioteka wielogrupowa U-235, a nie model SNR-300 – służy do poznania
+przepływu pracy, nie do wniosków o reaktorze.
