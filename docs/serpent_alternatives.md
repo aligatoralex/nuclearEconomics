@@ -23,7 +23,7 @@ Sources: [serpent.vtt.fi](https://serpent.vtt.fi/), [Serpent distribution](https
 | Code | Type | Licence | Fit as Serpent replacement | Speed / ease of setup |
 |---|---|---|---|---|
 | [OpenMC](https://github.com/openmc-dev/openmc) | 3D CE Monte Carlo + depletion | MIT | **Best match** – same physics class, Python API, depletion chains | `conda install openmc` (conda-forge, linux-64/macOS) or `docker run openmc/openmc`; Monte Carlo is still slower than Serpent per case (see below) |
-| [SCONE](https://github.com/CambridgeNuclear/SCONE) | 3D CE Monte Carlo | MIT | Teaching/prototyping; authors prioritise modifiability over performance | Needs source build (Fortran) **[unverified]**; not for production |
+| [SCONE](https://github.com/CambridgeNuclear/SCONE) | 3D CE Monte Carlo | MIT | Teaching/prototyping; authors prioritise modifiability over performance | Source build (Fortran, CMake, LAPACK) – confirmed, see `examples/scone_demo`; not for production |
 | [OpenMOC](https://github.com/mit-crpg/OpenMOC) | 2D/3D deterministic, method of characteristics | MIT **[unverified]** | Lattice/assembly calculations, Python interface | Much faster than MC for 2D lattices; needs multigroup XS |
 | [DRAGON5](https://merlin.polymtl.ca/downloads/Version5.pdf) | Deterministic lattice code (collision probability) | Open source (Polytechnique Montréal) | Lattice + burnup, homogenization | Fast; steeper learning curve, needs NJOY-processed libraries |
 | [NECP-X](https://necp-x.xjtu.edu.cn/info/1083/1023.htm) | Deterministic (Xi'an Jiaotong) | Not confirmed open | Compared with OpenMC on BEAVRS (<0.6% power deviation) | Availability unclear – skip |

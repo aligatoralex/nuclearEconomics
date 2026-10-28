@@ -39,11 +39,11 @@ szczegóły w Lekcji 4.
 | Parametr | Wartość | Status |
 |---|---|---|
 | Typ | SFR, paliwo MOX | zweryfikowane |
-| Moc cieplna | ≈ 762 MWt (771 MWt na wlocie do turbiny wg publikacji z 1976) | zweryfikowane |
+| Moc cieplna | ≈ 762 MWt (771 MWt na wlocie do turbiny wg publikacji z 1976 – różnica niewyjaśniona **[do weryfikacji]**) | zweryfikowane |
 | Moc elektryczna brutto | 327 MWe | zweryfikowane |
 | Temperatura wylotowa rdzenia | ≈ 819 K (≈ 546 °C) | zweryfikowane (zapis w źródle zawiera literówkę) |
 | Początek budowy | kwiecień 1973 | zweryfikowane |
 | Zakończenie konstrukcji | ok. 1985 | zweryfikowane |
 | Zakończenie projektu | marzec 1991, bez załadunku paliwa | zweryfikowane |
-| Koszt szacunkowy 1972 → 1991 | 1535 mln DM → ok. 7000 mln DM | zweryfikowane (JAEA); inne źródła podają inne wartości |
+| Koszt szacunkowy 1972 → 1991 | 1535 mln DM → ok. 7000 mln DM | JAEA podaje obie wartości; inne źródła się różnią (Lekcja 4) – nominalnie, bez deflatora |
 | Liczba pętli, ciśnienie, skład rdzenia | — | brak w znalezionych źródłach |

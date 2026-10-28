@@ -14,9 +14,9 @@ inputs). It uses delta tracking (`transportOperatorDT`).
 ```bash
 ./run_demo.sh
 ```
-Builds SCONE without MPI/tests (needs `gfortran`, `cmake`, LAPACK) and runs
+Builds SCONE (pinned commit `a4a02bfb24`, no MPI/OpenMP/tests; first build takes a few minutes; needs network, `git`, `python3`, `gfortran`, `cmake`, LAPACK/BLAS) and runs
 the input. Reference result from this session's build: **k-eff ≈ 1.6314 ± 0.00005**,
-about 15 s on one core.
+about 15 s on one core. A clean run of `run_demo.sh` (OpenMP off) gave 1.63135 ± 0.00004.
 
 ## Limits
 - This is **not** an SNR-300 model. The cross sections are a toy data set used
@@ -26,3 +26,6 @@ about 15 s on one core.
   work see OpenMC in `docs/serpent_alternatives.md`.
 - Per CLAUDE.md, nothing here feeds the economics model; any future use of
   results must go through `src/` and the assumptions registry.
+
+## Licence
+`inf_u235` and `XS/URRa_2_1_XSS` are copied from SCONE (MIT, © Cambridge Nuclear); see `LICENCE` in the SCONE repository.

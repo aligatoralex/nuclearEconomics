@@ -2,7 +2,8 @@
 import re
 import sys
 
-text = open(sys.argv[1]).read()
+with open(sys.argv[1], encoding="utf-8") as f:
+    text = f.read()
 matches = re.findall(r"k-eff \(implicit\):\s+([\d.]+) \+/-\s+([\d.]+)", text)
 if not matches:
     sys.exit("no k-eff found in log")

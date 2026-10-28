@@ -10,23 +10,23 @@ na przykładzie SNR-300. To lekcja najbliższa temu repo.
 | Szacunek 1972 | 1535 mln DM | zweryfikowane (JAEA) |
 | Koszt na 1991 | ok. 7000 mln DM | najczęściej podawane; źródła się różnią |
 | Wzrost | ×4,56 | obliczone z powyższych |
-| Czas budowy | ok. 18 lat (1973–1991) | zweryfikowane |
+| Czas budowy | ok. 12 lat (1973–ok. 1985); do anulowania projektu 18 lat (1991) | zweryfikowane |
 | Moc | 327 MWe brutto | zweryfikowane |
 
 Uwaga: wartości DM z różnych lat nie są porównywalne bez deflatora; dodatkowo
 część wzrostu to inflacja, a część zmiany wymagań licencyjnych i przestoje.
-Inne źródła podają ≈ 4 mld USD lub 500 mln marek w cenach z 1969 r., więc
+Inne źródła podają ≈ 4 mld USD lub 500 mln marek w cenach z 1969 r. **[do weryfikacji – źródła wtórne]**, więc
 **przed wykorzystaniem w modelu ustal bazę cenową**.
 
 ## 2. Koszt jednostkowy
-Overnight cost na kW(e): 7000 mln DM / 327 MWe ≈ **21 400 DM/kW** (nominalnie, bez dyskonta
-i bez deflatora). To tylko ilustracja rzędu wielkości.
+Całkowity koszt nominalny na kW(e): 7000 mln DM / 327 MWe ≈ **21 400 DM/kW**. To suma skumulowana
+razem z finansowaniem i przestojami, a nie koszt overnight; bez deflatora. Tylko ilustracja rzędu wielkości.
 
 ## 3. Wpływ opóźnień
-Odsetki w czasie budowy (IDC) rosną wykładniczo z czasem budowy. Dla stopy r
+Odsetki w czasie budowy (IDC) rosną z czasem budowy (dla małego rT niemal liniowo, ≈ rT/2; potem coraz szybciej). Dla stopy r
 i równomiernych wydatków przez T lat:
 IDC/Overnight ≈ (e^{rT} − 1)/(rT) − 1.
-Przykład: r = 5%, T = 8 lat → ok. 23%; T = 18 lat → ok. 62%.
+Przykład: r = 5%, T = 8 lat → ok. 23%; T = 12 lat (faktyczna budowa) → ok. 36%; T = 18 lat → ok. 62%.
 
 ## 4. LCOE
 LCOE = (Σ kosztów zdyskontowanych) / (Σ energii zdyskontowanej).

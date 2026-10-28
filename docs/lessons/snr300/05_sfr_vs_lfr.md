@@ -7,12 +7,12 @@ ołowiem lub eutektykiem Pb-Bi). Wartości to wiedza ogólna **[do weryfikacji]*
 |---|---|---|
 | Temp. topnienia | ≈ 98 °C | ≈ 327 °C (Pb), ≈ 124 °C (Pb-Bi) |
 | Temp. wrzenia | ≈ 883 °C | ≈ 1749 °C (Pb) |
-| Reakcja z wodą/powietrzem | gwałtowna | praktycznie obojętny chemicznie |
+| Reakcja z wodą/powietrzem | gwałtowna | słabo reaktywny z wodą i powietrzem (utlenia się, ale bez gwałtownej reakcji) |
 | Gęstość | mała (≈ 0,85 g/cm³) | duża (≈ 10,7 g/cm³) — obciążenia sejsmiczne, erozja |
 | Moderacja | słaba | bardzo słaba |
 | Korozja | umiarkowana | duża dla stali (wymaga kontroli tlenu) |
 | Ryzyko zakrzepnięcia | niskie | wysokie (wymaga ogrzewania) |
-| Doświadczenie | liczne reaktory (m.in. Phénix, BN-600) | głównie okręty rosyjskie (Pb-Bi), reaktory demonstracyjne |
+| Doświadczenie | liczne reaktory (m.in. Phénix, BN-600) | głównie rosyjskie okręty (Pb-Bi); LFR do produkcji energii dopiero w budowie (np. BREST) **[do weryfikacji]** |
 
 ## Wnioski
 - LFR eliminuje ryzyko sodowe, ale wymaga innych rozwiązań materiałowych.

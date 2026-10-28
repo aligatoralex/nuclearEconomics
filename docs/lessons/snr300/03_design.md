@@ -32,5 +32,5 @@ Obieg pośredni istnieje dlatego, że sód reaguje gwałtownie z wodą.
 ## Zadania
 1. Narysuj schemat trzech obiegów i oznacz, gdzie zachodzą wymiany ciepła.
 2. Oszacuj sprawność z danych podstawowych: 327 MWe / 762 MWt ≈ **42,9%** (brutto).
-   Porównaj z typowym LWR (~33%) i wyjaśnij, skąd różnica (wyższa temperatura pary).
+   Porównaj z typowym LWR (~33% netto **[do weryfikacji]**; dla SNR-300 policz też sprawność netto, gdy znajdziesz moc własną) i wyjaśnij różnicę (wyższa temperatura pary).
 3. Opisz scenariusz „wyciek sodu do pomieszczenia z wodą" i dwa środki ograniczające skutki.

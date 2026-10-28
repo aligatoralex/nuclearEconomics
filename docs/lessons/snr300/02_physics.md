@@ -18,7 +18,7 @@ BR > 1 oznacza, że reaktor produkuje więcej paliwa niż spala.
 Typowo BR ≈ 1,0–1,3 dla projektów SFR **[do weryfikacji]**; wartość dla SNR-300
 trzeba wziąć z dokumentacji projektowej (nie znaleziono w źródłach z tej sesji).
 
-Bilans: η − 1 − (straty) > 0, gdzie η to liczba neutronów na absorpcję
+Bilans: η − 2 − (straty) > 0 (powielanie wymaga η > 2: jeden neutron podtrzymuje reakcję, jeden zamienia U-238 w Pu-239), gdzie η to liczba neutronów na absorpcję
 w materiale rozszczepialnym.
 
 ## 3. Paliwo MOX w SNR-300

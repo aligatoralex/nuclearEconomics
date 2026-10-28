@@ -23,7 +23,7 @@ Po lekcji potrafisz: (a) wyjaśnić, po co budowano reaktory prędkie,
 | styczeń 1987 | wybory federalne; według KfK 5455 rząd nieformalnie zdecydował, by nie uruchamiać reaktora przed nimi |
 | marzec 1991 | formalne zakończenie projektu; do rdzenia nigdy nie załadowano paliwa |
 
-Konstrukcja trwała ok. **18 lat** od startu do zakończenia projektu.
+Budowa trwała ok. **12 lat** (1973–ok. 1985); od startu do formalnego zakończenia projektu minęło ok. **18 lat** (1973–1991).
 
 ## 3. Dlaczego nie zadziałał?
 Źródła podkreślają przyczynę **polityczną i licencyjną**: rząd kraju
